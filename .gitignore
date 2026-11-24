@@ -17,6 +17,7 @@ tsconfig.tsbuildinfo
 
 # Local database & client data (CRITICAL — PUBLIC REPO)
 work/
+supabase/.temp/
 *.sqlite
 *.sqlite3
 *.sqlite-wal
