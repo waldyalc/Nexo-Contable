@@ -1,6 +1,6 @@
 "use client";
 
-import { IconMenu2 } from "@tabler/icons-react";
+import { IconMenu2, IconSearch } from "@tabler/icons-react";
 import { usePathname } from "next/navigation";
 
 import { MigasDePan } from "@/components/pagina/migas-de-pan";
@@ -14,13 +14,14 @@ import type { ContextoApp } from "@/lib/auth/sesion";
 export interface TopbarProps {
   contexto: ContextoApp;
   onAbrirMenu: () => void;
+  onAbrirPaleta: () => void;
 }
 
 /**
  * Barra superior sticky de 68 px: menú móvil, migas de pan, selector
  * "Mis empresas" y menú desplegable del perfil del usuario.
  */
-export function Topbar({ contexto, onAbrirMenu }: TopbarProps) {
+export function Topbar({ contexto, onAbrirMenu, onAbrirPaleta }: TopbarProps) {
   const pathname = usePathname();
   const migas = migasParaRuta(pathname);
 
@@ -41,6 +42,21 @@ export function Topbar({ contexto, onAbrirMenu }: TopbarProps) {
       </div>
 
       <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+        <Button
+          type="button"
+          variant="outline"
+          aria-label="Abrir búsqueda global"
+          aria-keyshortcuts="Control+K Meta+K"
+          className="h-9 gap-2 border-border bg-muted/40 px-2.5 text-muted-foreground hover:text-foreground"
+          onClick={onAbrirPaleta}
+        >
+          <IconSearch className="size-4 shrink-0" />
+          <span className="hidden text-sm md:inline">Buscar…</span>
+          <kbd className="hidden rounded-md border border-border bg-card px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground lg:inline-flex">
+            Ctrl K
+          </kbd>
+        </Button>
+
         <CompanySwitcher
           empresas={contexto.empresas}
           empresaActiva={contexto.empresaActiva}
