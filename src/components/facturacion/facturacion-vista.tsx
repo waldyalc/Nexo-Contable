@@ -17,7 +17,7 @@ import {
   IconWallet,
 } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
-import { type FormEvent, useMemo, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import {
@@ -502,6 +502,10 @@ function DialogoExportar607({
 }: DialogoExportar607Props) {
   const [periodo, setPeriodo] = useState(periodoInicial);
   const [generando, setGenerando] = useState<"excel" | "txt" | null>(null);
+
+  useEffect(() => {
+    if (abierto) setPeriodo(periodoInicial);
+  }, [abierto, periodoInicial]);
 
   async function descargar(formato: "excel" | "txt") {
     if (periodo === "") {

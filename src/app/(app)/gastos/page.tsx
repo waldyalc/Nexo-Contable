@@ -87,6 +87,7 @@ export default async function GastosPage() {
 
   return (
     <GastosVista
+      key={empresa.id}
       empresaId={empresa.id}
       documentos={documentos.documentos}
       terceros={terceros}

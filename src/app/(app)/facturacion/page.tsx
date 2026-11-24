@@ -84,6 +84,7 @@ export default async function FacturacionPage() {
 
   return (
     <FacturacionVista
+      key={empresa.id}
       empresaId={empresa.id}
       documentos={documentos.documentos}
       terceros={terceros}
