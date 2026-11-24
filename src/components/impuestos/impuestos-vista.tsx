@@ -11,7 +11,7 @@ import {
   IconReceiptTax,
 } from "@tabler/icons-react";
 import { usePathname, useRouter } from "next/navigation";
-import { type FormEvent, useMemo, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import {
@@ -52,6 +52,20 @@ import {
   formatearMoneda,
   formatearPeriodoMes,
 } from "@/lib/formato";
+import {
+  type EstadoConfiguracionFiscal,
+  type EstadoFormularioMetodoPago,
+  type EstadoFormularioObligacion,
+  type EstadoFormularioPresentar,
+  type EstadoFormularioRegla,
+  type EstadoFormularioSecuencia,
+  estadoInicialConfiguracion,
+  estadoInicialMetodoPago,
+  estadoInicialObligacion,
+  estadoInicialPresentar,
+  estadoInicialRegla,
+  estadoInicialSecuencia,
+} from "@/lib/operaciones/impuestos-dialogos";
 import {
   type ConfiguracionFiscalListado,
   type CuentaOpcion,
@@ -143,6 +157,7 @@ export function ImpuestosVista({
 
         <TabsContent value="formatos">
           <PanelFormatos
+            key={empresaId}
             empresaId={empresaId}
             periodo={periodo}
             reporte606={reporte606}
@@ -154,6 +169,7 @@ export function ImpuestosVista({
 
         <TabsContent value="secuencias">
           <PanelSecuencias
+            key={empresaId}
             empresaId={empresaId}
             secuencias={secuencias}
             onCambio={() => router.refresh()}
@@ -162,6 +178,7 @@ export function ImpuestosVista({
 
         <TabsContent value="configuracion">
           <PanelConfiguracion
+            key={empresaId}
             empresaId={empresaId}
             configuracion={configuracion}
             reglas={reglas}
@@ -174,6 +191,7 @@ export function ImpuestosVista({
 
         <TabsContent value="obligaciones">
           <PanelObligaciones
+            key={empresaId}
             empresaId={empresaId}
             obligaciones={obligaciones}
             periodo={periodo}
@@ -643,22 +661,25 @@ function DialogoSecuencia({
   secuencia,
   onGuardado,
 }: DialogoSecuenciaProps) {
-  const [tipoComprobante, setTipoComprobante] = useState(
-    secuencia?.tipoComprobante ?? "B02",
+  const [form, setForm] = useState<EstadoFormularioSecuencia>(() =>
+    estadoInicialSecuencia(secuencia),
   );
-  const [prefijo, setPrefijo] = useState(secuencia?.prefijo ?? "B02");
-  const [numeroInicial, setNumeroInicial] = useState(
-    String(secuencia?.numeroInicial ?? 1),
-  );
-  const [numeroFinal, setNumeroFinal] = useState(
-    String(secuencia?.numeroFinal ?? 500),
-  );
-  const [vencimiento, setVencimiento] = useState(
-    secuencia?.fechaVencimiento ?? "",
-  );
-  const [activo, setActivo] = useState(secuencia?.activo ?? true);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!abierto) return;
+    setForm(estadoInicialSecuencia(secuencia));
+    setGuardando(false);
+    setError(null);
+  }, [abierto, secuencia]);
+
+  function actualizar<C extends keyof EstadoFormularioSecuencia>(
+    campo: C,
+    valor: EstadoFormularioSecuencia[C],
+  ) {
+    setForm((anterior) => ({ ...anterior, [campo]: valor }));
+  }
 
   async function guardar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
@@ -670,12 +691,12 @@ function DialogoSecuencia({
     const resultado = await guardarSecuenciaNcfAction({
       empresaId,
       id: secuencia?.id ?? null,
-      tipoComprobante,
-      prefijo,
-      numeroInicial: Number(numeroInicial),
-      numeroFinal: Number(numeroFinal),
-      fechaVencimiento: vencimiento === "" ? null : vencimiento,
-      activo,
+      tipoComprobante: form.tipoComprobante,
+      prefijo: form.prefijo,
+      numeroInicial: Number(form.numeroInicial),
+      numeroFinal: Number(form.numeroFinal),
+      fechaVencimiento: form.vencimiento === "" ? null : form.vencimiento,
+      activo: form.activo,
     });
 
     setGuardando(false);
@@ -722,8 +743,8 @@ function DialogoSecuencia({
               <SelectCampo
                 id="secuencia-tipo"
                 opciones={OPCIONES_TIPO_COMPROBANTE}
-                valor={tipoComprobante}
-                onCambio={setTipoComprobante}
+                valor={form.tipoComprobante}
+                onCambio={(valor) => actualizar("tipoComprobante", valor)}
                 requerido
                 deshabilitado={secuencia !== null}
                 aria-label="Tipo de comprobante"
@@ -733,9 +754,9 @@ function DialogoSecuencia({
             <FormField htmlFor="secuencia-prefijo" label="Prefijo" required>
               <Input
                 id="secuencia-prefijo"
-                value={prefijo}
+                value={form.prefijo}
                 onChange={(evento) =>
-                  setPrefijo(evento.target.value.toUpperCase())
+                  actualizar("prefijo", evento.target.value.toUpperCase())
                 }
                 placeholder="B02"
                 className="font-mono text-xs uppercase"
@@ -752,8 +773,10 @@ function DialogoSecuencia({
                 id="secuencia-inicial"
                 type="number"
                 min="1"
-                value={numeroInicial}
-                onChange={(evento) => setNumeroInicial(evento.target.value)}
+                value={form.numeroInicial}
+                onChange={(evento) =>
+                  actualizar("numeroInicial", evento.target.value)
+                }
                 className="tabular-nums"
                 disabled={secuencia !== null}
               />
@@ -764,8 +787,10 @@ function DialogoSecuencia({
                 id="secuencia-final"
                 type="number"
                 min="1"
-                value={numeroFinal}
-                onChange={(evento) => setNumeroFinal(evento.target.value)}
+                value={form.numeroFinal}
+                onChange={(evento) =>
+                  actualizar("numeroFinal", evento.target.value)
+                }
                 className="tabular-nums"
               />
             </FormField>
@@ -773,8 +798,8 @@ function DialogoSecuencia({
             <FormField htmlFor="secuencia-vencimiento" label="Vencimiento">
               <DatePicker
                 id="secuencia-vencimiento"
-                value={vencimiento}
-                onChange={setVencimiento}
+                value={form.vencimiento}
+                onChange={(valor) => actualizar("vencimiento", valor)}
                 permitirLimpiar
               />
             </FormField>
@@ -785,8 +810,8 @@ function DialogoSecuencia({
             >
               <Checkbox
                 id="secuencia-activo"
-                checked={activo}
-                onCheckedChange={setActivo}
+                checked={form.activo}
+                onCheckedChange={(valor) => actualizar("activo", valor)}
               />
               <span className="text-sm font-medium text-foreground">
                 Activa
@@ -839,32 +864,8 @@ function PanelConfiguracion({
   moneda,
   onCambio,
 }: PanelConfiguracionProps) {
-  const [tasaItbis, setTasaItbis] = useState(
-    (configuracion.tasaItbisBps / 100).toFixed(2),
-  );
-  const [retencionIsr, setRetencionIsr] = useState(
-    (configuracion.retencionIsrServiciosBps / 100).toFixed(2),
-  );
-  const [retencionItbis, setRetencionItbis] = useState(
-    (configuracion.retencionItbisServiciosBps / 100).toFixed(2),
-  );
-  const [cuentaItbisAdelantado, setCuentaItbisAdelantado] = useState(
-    configuracion.cuentaItbisAdelantadoId ?? "",
-  );
-  const [cuentaItbisPorPagar, setCuentaItbisPorPagar] = useState(
-    configuracion.cuentaItbisPorPagarId ?? "",
-  );
-  const [cuentaRetencionIsr, setCuentaRetencionIsr] = useState(
-    configuracion.cuentaRetencionIsrId ?? "",
-  );
-  const [cuentaRetencionItbis, setCuentaRetencionItbis] = useState(
-    configuracion.cuentaRetencionItbisId ?? "",
-  );
-  const [cuentaCxc, setCuentaCxc] = useState(
-    configuracion.cuentaCxcDefaultId ?? "",
-  );
-  const [cuentaCxp, setCuentaCxp] = useState(
-    configuracion.cuentaCxpDefaultId ?? "",
+  const [form, setForm] = useState<EstadoConfiguracionFiscal>(() =>
+    estadoInicialConfiguracion(configuracion),
   );
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -876,6 +877,23 @@ function PanelConfiguracion({
   const [metodoEdicion, setMetodoEdicion] = useState<MetodoPagoOpcion | null>(
     null,
   );
+
+  useEffect(() => {
+    setForm(estadoInicialConfiguracion(configuracion));
+    setGuardando(false);
+    setError(null);
+    setReglaAbierta(false);
+    setReglaEdicion(null);
+    setMetodoAbierto(false);
+    setMetodoEdicion(null);
+  }, [configuracion]);
+
+  function actualizar<C extends keyof EstadoConfiguracionFiscal>(
+    campo: C,
+    valor: EstadoConfiguracionFiscal[C],
+  ) {
+    setForm((anterior) => ({ ...anterior, [campo]: valor }));
+  }
 
   const opcionesCuentas = cuentas.map((cuenta) => ({
     value: cuenta.id,
@@ -899,15 +917,15 @@ function PanelConfiguracion({
 
     const resultado = await guardarConfiguracionFiscalAction({
       empresaId,
-      tasaItbisBps: aBps(tasaItbis),
-      retencionIsrServiciosBps: aBps(retencionIsr),
-      retencionItbisServiciosBps: aBps(retencionItbis),
-      cuentaItbisAdelantadoId: vacioONull(cuentaItbisAdelantado),
-      cuentaItbisPorPagarId: vacioONull(cuentaItbisPorPagar),
-      cuentaRetencionIsrId: vacioONull(cuentaRetencionIsr),
-      cuentaRetencionItbisId: vacioONull(cuentaRetencionItbis),
-      cuentaCxcDefaultId: vacioONull(cuentaCxc),
-      cuentaCxpDefaultId: vacioONull(cuentaCxp),
+      tasaItbisBps: aBps(form.tasaItbis),
+      retencionIsrServiciosBps: aBps(form.retencionIsr),
+      retencionItbisServiciosBps: aBps(form.retencionItbis),
+      cuentaItbisAdelantadoId: vacioONull(form.cuentaItbisAdelantado),
+      cuentaItbisPorPagarId: vacioONull(form.cuentaItbisPorPagar),
+      cuentaRetencionIsrId: vacioONull(form.cuentaRetencionIsr),
+      cuentaRetencionItbisId: vacioONull(form.cuentaRetencionItbis),
+      cuentaCxcDefaultId: vacioONull(form.cuentaCxc),
+      cuentaCxpDefaultId: vacioONull(form.cuentaCxp),
     });
 
     setGuardando(false);
@@ -952,8 +970,10 @@ function PanelConfiguracion({
                   min="0"
                   max="100"
                   step="0.01"
-                  value={tasaItbis}
-                  onChange={(evento) => setTasaItbis(evento.target.value)}
+                  value={form.tasaItbis}
+                  onChange={(evento) =>
+                    actualizar("tasaItbis", evento.target.value)
+                  }
                   className="tabular-nums"
                 />
               </FormField>
@@ -969,8 +989,10 @@ function PanelConfiguracion({
                   min="0"
                   max="100"
                   step="0.01"
-                  value={retencionIsr}
-                  onChange={(evento) => setRetencionIsr(evento.target.value)}
+                  value={form.retencionIsr}
+                  onChange={(evento) =>
+                    actualizar("retencionIsr", evento.target.value)
+                  }
                   className="tabular-nums"
                 />
               </FormField>
@@ -986,8 +1008,10 @@ function PanelConfiguracion({
                   min="0"
                   max="100"
                   step="0.01"
-                  value={retencionItbis}
-                  onChange={(evento) => setRetencionItbis(evento.target.value)}
+                  value={form.retencionItbis}
+                  onChange={(evento) =>
+                    actualizar("retencionItbis", evento.target.value)
+                  }
                   className="tabular-nums"
                 />
               </FormField>
@@ -999,8 +1023,10 @@ function PanelConfiguracion({
                 <SelectCampo
                   id="fiscal-itbis-adelantado"
                   opciones={opcionesCuentas}
-                  valor={cuentaItbisAdelantado}
-                  onCambio={setCuentaItbisAdelantado}
+                  valor={form.cuentaItbisAdelantado}
+                  onCambio={(valor) =>
+                    actualizar("cuentaItbisAdelantado", valor)
+                  }
                   etiquetaVacia="Sin cuenta"
                   buscable
                   aria-label="Cuenta de ITBIS adelantado"
@@ -1011,8 +1037,8 @@ function PanelConfiguracion({
                 <SelectCampo
                   id="fiscal-itbis-pagar"
                   opciones={opcionesCuentas}
-                  valor={cuentaItbisPorPagar}
-                  onCambio={setCuentaItbisPorPagar}
+                  valor={form.cuentaItbisPorPagar}
+                  onCambio={(valor) => actualizar("cuentaItbisPorPagar", valor)}
                   etiquetaVacia="Sin cuenta"
                   buscable
                   aria-label="Cuenta de ITBIS por pagar"
@@ -1026,8 +1052,8 @@ function PanelConfiguracion({
                 <SelectCampo
                   id="fiscal-ret-isr-cuenta"
                   opciones={opcionesCuentas}
-                  valor={cuentaRetencionIsr}
-                  onCambio={setCuentaRetencionIsr}
+                  valor={form.cuentaRetencionIsr}
+                  onCambio={(valor) => actualizar("cuentaRetencionIsr", valor)}
                   etiquetaVacia="Sin cuenta"
                   buscable
                   aria-label="Cuenta de retención ISR"
@@ -1041,8 +1067,10 @@ function PanelConfiguracion({
                 <SelectCampo
                   id="fiscal-ret-itbis-cuenta"
                   opciones={opcionesCuentas}
-                  valor={cuentaRetencionItbis}
-                  onCambio={setCuentaRetencionItbis}
+                  valor={form.cuentaRetencionItbis}
+                  onCambio={(valor) =>
+                    actualizar("cuentaRetencionItbis", valor)
+                  }
                   etiquetaVacia="Sin cuenta"
                   buscable
                   aria-label="Cuenta de retención ITBIS"
@@ -1056,8 +1084,8 @@ function PanelConfiguracion({
                 <SelectCampo
                   id="fiscal-cxc"
                   opciones={opcionesCuentas}
-                  valor={cuentaCxc}
-                  onCambio={setCuentaCxc}
+                  valor={form.cuentaCxc}
+                  onCambio={(valor) => actualizar("cuentaCxc", valor)}
                   etiquetaVacia="Sin cuenta"
                   buscable
                   aria-label="Cuenta por cobrar por defecto"
@@ -1071,8 +1099,8 @@ function PanelConfiguracion({
                 <SelectCampo
                   id="fiscal-cxp"
                   opciones={opcionesCuentas}
-                  valor={cuentaCxp}
-                  onCambio={setCuentaCxp}
+                  valor={form.cuentaCxp}
+                  onCambio={(valor) => actualizar("cuentaCxp", valor)}
                   etiquetaVacia="Sin cuenta"
                   buscable
                   aria-label="Cuenta por pagar por defecto"
@@ -1308,16 +1336,25 @@ function DialogoRegla({
   cuentas,
   onGuardado,
 }: DialogoReglaProps) {
-  const [codigo, setCodigo] = useState(regla?.codigo ?? "");
-  const [nombre, setNombre] = useState(regla?.nombre ?? "");
-  const [tipo, setTipo] = useState(regla?.tipo ?? "itbis");
-  const [tasa, setTasa] = useState(
-    regla ? (regla.tasaBps / 100).toFixed(2) : "18.00",
+  const [form, setForm] = useState<EstadoFormularioRegla>(() =>
+    estadoInicialRegla(regla),
   );
-  const [cuentaId, setCuentaId] = useState(regla?.cuentaId ?? "");
-  const [activa, setActiva] = useState(regla?.activa ?? true);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!abierto) return;
+    setForm(estadoInicialRegla(regla));
+    setGuardando(false);
+    setError(null);
+  }, [abierto, regla]);
+
+  function actualizar<C extends keyof EstadoFormularioRegla>(
+    campo: C,
+    valor: EstadoFormularioRegla[C],
+  ) {
+    setForm((anterior) => ({ ...anterior, [campo]: valor }));
+  }
 
   const opcionesCuentas = cuentas.map((cuenta) => ({
     value: cuenta.id,
@@ -1334,12 +1371,12 @@ function DialogoRegla({
     const resultado = await guardarReglaFiscalAction({
       empresaId,
       id: regla?.id ?? null,
-      codigo,
-      nombre,
-      tipo,
-      tasaBps: Math.round(aNumero(tasa) * 100),
-      cuentaId: cuentaId === "" ? null : cuentaId,
-      activa,
+      codigo: form.codigo,
+      nombre: form.nombre,
+      tipo: form.tipo,
+      tasaBps: Math.round(aNumero(form.tasa) * 100),
+      cuentaId: form.cuentaId === "" ? null : form.cuentaId,
+      activa: form.activa,
     });
 
     setGuardando(false);
@@ -1381,9 +1418,9 @@ function DialogoRegla({
             <FormField htmlFor="regla-codigo" label="Código" required>
               <Input
                 id="regla-codigo"
-                value={codigo}
+                value={form.codigo}
                 onChange={(evento) =>
-                  setCodigo(evento.target.value.toUpperCase())
+                  actualizar("codigo", evento.target.value.toUpperCase())
                 }
                 placeholder="ITBIS18"
                 className="font-mono text-xs uppercase"
@@ -1398,8 +1435,8 @@ function DialogoRegla({
             >
               <Input
                 id="regla-nombre"
-                value={nombre}
-                onChange={(evento) => setNombre(evento.target.value)}
+                value={form.nombre}
+                onChange={(evento) => actualizar("nombre", evento.target.value)}
                 placeholder="ITBIS 18%"
               />
             </FormField>
@@ -1408,8 +1445,8 @@ function DialogoRegla({
               <SelectCampo
                 id="regla-tipo"
                 opciones={OPCIONES_TIPO_REGLA}
-                valor={tipo}
-                onCambio={setTipo}
+                valor={form.tipo}
+                onCambio={(valor) => actualizar("tipo", valor)}
                 requerido
                 aria-label="Tipo de regla fiscal"
               />
@@ -1422,8 +1459,8 @@ function DialogoRegla({
                 min="0"
                 max="100"
                 step="0.01"
-                value={tasa}
-                onChange={(evento) => setTasa(evento.target.value)}
+                value={form.tasa}
+                onChange={(evento) => actualizar("tasa", evento.target.value)}
                 className="tabular-nums"
               />
             </FormField>
@@ -1432,8 +1469,8 @@ function DialogoRegla({
               <SelectCampo
                 id="regla-cuenta"
                 opciones={opcionesCuentas}
-                valor={cuentaId}
-                onCambio={setCuentaId}
+                valor={form.cuentaId}
+                onCambio={(valor) => actualizar("cuentaId", valor)}
                 etiquetaVacia="Sin cuenta"
                 buscable
                 aria-label="Cuenta de la regla fiscal"
@@ -1446,8 +1483,8 @@ function DialogoRegla({
             >
               <Checkbox
                 id="regla-activa"
-                checked={activa}
-                onCheckedChange={setActiva}
+                checked={form.activa}
+                onCheckedChange={(valor) => actualizar("activa", valor)}
               />
               <span className="text-sm font-medium text-foreground">
                 Activa
@@ -1500,12 +1537,25 @@ function DialogoMetodoPago({
   moneda,
   onGuardado,
 }: DialogoMetodoPagoProps) {
-  const [nombre, setNombre] = useState(metodo?.nombre ?? "");
-  const [cuentaId, setCuentaId] = useState(metodo?.cuentaId ?? "");
-  const [dejaCxp, setDejaCxp] = useState(metodo?.dejaCxpProveedor ?? false);
-  const [activo, setActivo] = useState(metodo?.activo ?? true);
+  const [form, setForm] = useState<EstadoFormularioMetodoPago>(() =>
+    estadoInicialMetodoPago(metodo),
+  );
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!abierto) return;
+    setForm(estadoInicialMetodoPago(metodo));
+    setGuardando(false);
+    setError(null);
+  }, [abierto, metodo]);
+
+  function actualizar<C extends keyof EstadoFormularioMetodoPago>(
+    campo: C,
+    valor: EstadoFormularioMetodoPago[C],
+  ) {
+    setForm((anterior) => ({ ...anterior, [campo]: valor }));
+  }
 
   const opcionesCuentas = cuentas.map((cuenta) => ({
     value: cuenta.id,
@@ -1516,7 +1566,7 @@ function DialogoMetodoPago({
     evento.preventDefault();
     if (guardando) return;
 
-    if (cuentaId === "") {
+    if (form.cuentaId === "") {
       setError("Selecciona la cuenta contable del método de pago.");
       return;
     }
@@ -1527,10 +1577,10 @@ function DialogoMetodoPago({
     const resultado = await guardarMetodoPagoAction({
       empresaId,
       id: metodo?.id ?? null,
-      nombre,
-      cuentaId,
-      dejaCxpProveedor: dejaCxp,
-      activo,
+      nombre: form.nombre,
+      cuentaId: form.cuentaId,
+      dejaCxpProveedor: form.dejaCxp,
+      activo: form.activo,
     });
 
     setGuardando(false);
@@ -1571,8 +1621,8 @@ function DialogoMetodoPago({
           <FormField htmlFor="metodo-nombre" label="Nombre" required>
             <Input
               id="metodo-nombre"
-              value={nombre}
-              onChange={(evento) => setNombre(evento.target.value)}
+              value={form.nombre}
+              onChange={(evento) => actualizar("nombre", evento.target.value)}
               placeholder="Transferencia bancaria"
             />
           </FormField>
@@ -1581,8 +1631,8 @@ function DialogoMetodoPago({
             <SelectCampo
               id="metodo-cuenta"
               opciones={opcionesCuentas}
-              valor={cuentaId}
-              onCambio={setCuentaId}
+              valor={form.cuentaId}
+              onCambio={(valor) => actualizar("cuentaId", valor)}
               etiquetaVacia="Selecciona la cuenta"
               buscable
               requerido
@@ -1596,8 +1646,8 @@ function DialogoMetodoPago({
           >
             <Checkbox
               id="metodo-cxp"
-              checked={dejaCxp}
-              onCheckedChange={setDejaCxp}
+              checked={form.dejaCxp}
+              onCheckedChange={(valor) => actualizar("dejaCxp", valor)}
             />
             <span className="text-sm font-medium text-foreground">
               Deja cuenta por pagar al proveedor
@@ -1610,8 +1660,8 @@ function DialogoMetodoPago({
           >
             <Checkbox
               id="metodo-activo"
-              checked={activo}
-              onCheckedChange={setActivo}
+              checked={form.activo}
+              onCheckedChange={(valor) => actualizar("activo", valor)}
             />
             <span className="text-sm font-medium text-foreground">Activo</span>
           </label>
@@ -1799,12 +1849,25 @@ function DialogoObligacion({
   periodoInicial,
   onGuardado,
 }: DialogoObligacionProps) {
-  const [codigoFormulario, setCodigoFormulario] = useState("606");
-  const [periodo, setPeriodo] = useState(periodoInicial);
-  const [fechaLimite, setFechaLimite] = useState("");
-  const [monto, setMonto] = useState("0");
+  const [form, setForm] = useState<EstadoFormularioObligacion>(() =>
+    estadoInicialObligacion(periodoInicial),
+  );
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!abierto) return;
+    setForm(estadoInicialObligacion(periodoInicial));
+    setGuardando(false);
+    setError(null);
+  }, [abierto, periodoInicial]);
+
+  function actualizar<C extends keyof EstadoFormularioObligacion>(
+    campo: C,
+    valor: EstadoFormularioObligacion[C],
+  ) {
+    setForm((anterior) => ({ ...anterior, [campo]: valor }));
+  }
 
   const opcionesFormulario = FORMULARIOS_FISCALES.map((formulario) => ({
     value: formulario.value,
@@ -1815,11 +1878,11 @@ function DialogoObligacion({
     evento.preventDefault();
     if (guardando) return;
 
-    if (periodo === "") {
+    if (form.periodo === "") {
       setError("Selecciona el período de la obligación.");
       return;
     }
-    if (fechaLimite === "") {
+    if (form.fechaLimite === "") {
       setError("Selecciona la fecha límite de presentación.");
       return;
     }
@@ -1829,11 +1892,11 @@ function DialogoObligacion({
 
     const resultado = await guardarObligacionFiscalAction({
       empresaId,
-      codigoFormulario,
-      periodo: periodoDgiiDesdeMes(periodo),
-      fechaLimite,
+      codigoFormulario: form.codigoFormulario,
+      periodo: periodoDgiiDesdeMes(form.periodo),
+      fechaLimite: form.fechaLimite,
       estado: "pending",
-      montoDeclarado: aNumero(monto),
+      montoDeclarado: aNumero(form.monto),
     });
 
     setGuardando(false);
@@ -1877,8 +1940,8 @@ function DialogoObligacion({
             <SelectCampo
               id="obligacion-formulario"
               opciones={opcionesFormulario}
-              valor={codigoFormulario}
-              onCambio={setCodigoFormulario}
+              valor={form.codigoFormulario}
+              onCambio={(valor) => actualizar("codigoFormulario", valor)}
               requerido
               aria-label="Formulario fiscal"
             />
@@ -1887,8 +1950,8 @@ function DialogoObligacion({
           <FormField htmlFor="obligacion-periodo" label="Período" required>
             <MonthPicker
               id="obligacion-periodo"
-              value={periodo}
-              onChange={setPeriodo}
+              value={form.periodo}
+              onChange={(valor) => actualizar("periodo", valor)}
               placeholder="Período fiscal"
             />
           </FormField>
@@ -1896,8 +1959,8 @@ function DialogoObligacion({
           <FormField htmlFor="obligacion-limite" label="Fecha límite" required>
             <DatePicker
               id="obligacion-limite"
-              value={fechaLimite}
-              onChange={setFechaLimite}
+              value={form.fechaLimite}
+              onChange={(valor) => actualizar("fechaLimite", valor)}
             />
           </FormField>
 
@@ -1907,8 +1970,8 @@ function DialogoObligacion({
               type="number"
               min="0"
               step="0.01"
-              value={monto}
-              onChange={(evento) => setMonto(evento.target.value)}
+              value={form.monto}
+              onChange={(evento) => actualizar("monto", evento.target.value)}
               className="tabular-nums"
             />
           </FormField>
@@ -1956,15 +2019,25 @@ function DialogoPresentar({
   moneda,
   onGuardado,
 }: DialogoPresentarProps) {
-  const [estado, setEstado] = useState<"filed" | "paid">("filed");
-  const [monto, setMonto] = useState(
-    obligacion ? obligacion.montoDeclarado.toFixed(2) : "0",
-  );
-  const [referencia, setReferencia] = useState(
-    obligacion?.referenciaPresentacion ?? "",
+  const [form, setForm] = useState<EstadoFormularioPresentar>(() =>
+    estadoInicialPresentar(obligacion),
   );
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!abierto) return;
+    setForm(estadoInicialPresentar(obligacion));
+    setGuardando(false);
+    setError(null);
+  }, [abierto, obligacion]);
+
+  function actualizar<C extends keyof EstadoFormularioPresentar>(
+    campo: C,
+    valor: EstadoFormularioPresentar[C],
+  ) {
+    setForm((anterior) => ({ ...anterior, [campo]: valor }));
+  }
 
   const opcionesEstado = OPCIONES_ESTADO_OBLIGACION.filter(
     (opcion) => opcion.value === "filed" || opcion.value === "paid",
@@ -1980,9 +2053,9 @@ function DialogoPresentar({
     const resultado = await marcarObligacionPresentadaAction({
       empresaId,
       obligacionId: obligacion.id,
-      estado,
-      montoDeclarado: aNumero(monto),
-      referenciaPresentacion: referencia,
+      estado: form.estado,
+      montoDeclarado: aNumero(form.monto),
+      referenciaPresentacion: form.referencia,
     });
 
     setGuardando(false);
@@ -2023,9 +2096,9 @@ function DialogoPresentar({
             <SelectCampo
               id="presentar-estado"
               opciones={opcionesEstado}
-              valor={estado}
+              valor={form.estado}
               onCambio={(valor) =>
-                setEstado(valor === "paid" ? "paid" : "filed")
+                actualizar("estado", valor === "paid" ? "paid" : "filed")
               }
               requerido
               aria-label="Estado de la presentación"
@@ -2041,8 +2114,8 @@ function DialogoPresentar({
               type="number"
               min="0"
               step="0.01"
-              value={monto}
-              onChange={(evento) => setMonto(evento.target.value)}
+              value={form.monto}
+              onChange={(evento) => actualizar("monto", evento.target.value)}
               className="tabular-nums"
             />
           </FormField>
@@ -2050,8 +2123,10 @@ function DialogoPresentar({
           <FormField htmlFor="presentar-referencia" label="Referencia">
             <Input
               id="presentar-referencia"
-              value={referencia}
-              onChange={(evento) => setReferencia(evento.target.value)}
+              value={form.referencia}
+              onChange={(evento) =>
+                actualizar("referencia", evento.target.value)
+              }
               placeholder="Número de acuse o comprobante"
             />
           </FormField>
