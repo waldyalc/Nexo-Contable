@@ -19,7 +19,8 @@ const manrope = Manrope({
 
 export const metadata: Metadata = {
   title: "Nexo Contable",
-  description: "Sistema de contabilidad multi-empresa para República Dominicana",
+  description:
+    "Sistema de contabilidad multi-empresa para República Dominicana",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
