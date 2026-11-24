@@ -484,6 +484,10 @@ function DialogoExportar606({
   const [generando, setGenerando] = useState<"excel" | "txt" | null>(null);
 
   useEffect(() => {
+    setPeriodo(periodoInicial);
+  }, [periodoInicial]);
+
+  useEffect(() => {
     if (abierto) setPeriodo(periodoInicial);
   }, [abierto, periodoInicial]);
 

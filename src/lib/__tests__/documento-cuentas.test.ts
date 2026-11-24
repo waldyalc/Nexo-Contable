@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -61,6 +63,10 @@ const CUENTAS: CuentaOpcion[] = [
 
 function ids(cuentas: readonly CuentaOpcion[]): string[] {
   return cuentas.map((cuenta) => cuenta.id);
+}
+
+function leer(relativa: string): string {
+  return fs.readFileSync(path.resolve(process.cwd(), relativa), "utf8");
 }
 
 describe("cuentasParaCampoDocumento", () => {
@@ -171,6 +177,9 @@ describe("cuentas iniciales del documento", () => {
     expect(resolverCuentaRetencionDocumento(configuracion, 0, 180)).toBe(
       "retencion-itbis",
     );
+    expect(resolverCuentaRetencionDocumento(configuracion, 100, 180)).toBe(
+      "retencion-isr",
+    );
     expect(
       resolverCuentaRetencionDocumento(
         { cuentaRetencionItbisId: "retencion-itbis" },
@@ -196,5 +205,60 @@ describe("cuentas iniciales del documento", () => {
       cuentaImpuestoId: "itbis-adelantado",
       cuentaRetencionId: "retencion-manual",
     });
+  });
+});
+
+describe("candado de cableado en documentos", () => {
+  it("DocumentoFormDialog usa la lógica pura para los cuatro campos de cuentas", () => {
+    const contenido = leer("src/components/gastos/documento-form-dialog.tsx");
+
+    expect(
+      contenido.match(/cuentasParaCampoDocumento\(/g)?.length ?? 0,
+    ).toBeGreaterThanOrEqual(4);
+    for (const campo of ["principal", "control", "impuesto", "retencion"]) {
+      expect(contenido).toContain(`"${campo}"`);
+    }
+    expect(contenido).toContain("rellenarCuentasPorDefectoVacias");
+    expect(contenido).toContain("resolverCuentaRetencionDocumento");
+  });
+
+  it("las páginas y vistas propagan los seis IDs de la configuración fiscal", () => {
+    const archivos = [
+      "src/app/(app)/gastos/page.tsx",
+      "src/app/(app)/facturacion/page.tsx",
+      "src/components/gastos/gastos-vista.tsx",
+      "src/components/facturacion/facturacion-vista.tsx",
+    ];
+    const propiedades = [
+      "cuentaItbisAdelantadoId",
+      "cuentaItbisPorPagarId",
+      "cuentaRetencionIsrId",
+      "cuentaRetencionItbisId",
+      "cuentaCxcDefaultId",
+      "cuentaCxpDefaultId",
+    ];
+
+    for (const archivo of archivos) {
+      const contenido = leer(archivo);
+      for (const propiedad of propiedades) {
+        expect(contenido, `${archivo} debe propagar ${propiedad}`).toContain(
+          propiedad,
+        );
+      }
+    }
+  });
+
+  it("las exportaciones 606/607 resincronizan su período y las vistas se remontan por empresa", () => {
+    for (const archivo of [
+      "src/components/gastos/gastos-vista.tsx",
+      "src/components/facturacion/facturacion-vista.tsx",
+    ]) {
+      expect(leer(archivo)).toContain("setPeriodo(periodoInicial)");
+    }
+
+    expect(leer("src/app/(app)/gastos/page.tsx")).toContain("key={empresa.id}");
+    expect(leer("src/app/(app)/facturacion/page.tsx")).toContain(
+      "key={empresa.id}",
+    );
   });
 });
