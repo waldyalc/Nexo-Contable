@@ -92,7 +92,12 @@ export interface GastosVistaProps {
   secuencias: readonly SecuenciaNcfListado[];
   documentosAcreditables: readonly DocumentoAcreditable[];
   tasaItbisBps: number;
-  cuentaCxpDefaultId: string | null;
+  cuentaItbisAdelantadoId?: string | null;
+  cuentaItbisPorPagarId?: string | null;
+  cuentaRetencionIsrId?: string | null;
+  cuentaRetencionItbisId?: string | null;
+  cuentaCxcDefaultId?: string | null;
+  cuentaCxpDefaultId?: string | null;
   periodoInicial: string;
   moneda: "DOP" | "USD";
 }
@@ -111,6 +116,11 @@ export function GastosVista({
   secuencias,
   documentosAcreditables,
   tasaItbisBps,
+  cuentaItbisAdelantadoId,
+  cuentaItbisPorPagarId,
+  cuentaRetencionIsrId,
+  cuentaRetencionItbisId,
+  cuentaCxcDefaultId,
   cuentaCxpDefaultId,
   periodoInicial,
   moneda,
@@ -388,7 +398,12 @@ export function GastosVista({
         secuencias={secuencias}
         documentosAcreditables={documentosAcreditables}
         tasaItbisBps={tasaItbisBps}
-        cuentaControlDefaultId={cuentaCxpDefaultId}
+        cuentaItbisAdelantadoId={cuentaItbisAdelantadoId}
+        cuentaItbisPorPagarId={cuentaItbisPorPagarId}
+        cuentaRetencionIsrId={cuentaRetencionIsrId}
+        cuentaRetencionItbisId={cuentaRetencionItbisId}
+        cuentaCxcDefaultId={cuentaCxcDefaultId}
+        cuentaCxpDefaultId={cuentaCxpDefaultId}
       />
 
       <TercerosSheet

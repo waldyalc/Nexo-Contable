@@ -95,6 +95,11 @@ export default async function GastosPage() {
       secuencias={secuencias}
       documentosAcreditables={acreditables}
       tasaItbisBps={configuracion.tasaItbisBps}
+      cuentaItbisAdelantadoId={configuracion.cuentaItbisAdelantadoId}
+      cuentaItbisPorPagarId={configuracion.cuentaItbisPorPagarId}
+      cuentaRetencionIsrId={configuracion.cuentaRetencionIsrId}
+      cuentaRetencionItbisId={configuracion.cuentaRetencionItbisId}
+      cuentaCxcDefaultId={configuracion.cuentaCxcDefaultId}
       cuentaCxpDefaultId={configuracion.cuentaCxpDefaultId}
       periodoInicial={periodoActualSantoDomingo()}
       moneda={empresa.monedaFuncional === "USD" ? "USD" : "DOP"}

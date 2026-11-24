@@ -5,7 +5,7 @@ import {
   IconLoader2,
   IconReceipt2,
 } from "@tabler/icons-react";
-import { type FormEvent, useEffect, useMemo, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { emitirDocumentoVentaAction } from "@/app/(app)/facturacion/actions";
@@ -24,7 +24,13 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { aNumero, formatearMoneda, hoySantoDomingo } from "@/lib/formato";
-import { cuentasParaCampoDocumento } from "@/lib/operaciones/cuentas-opciones";
+import {
+  type CuentasInicialesDocumento,
+  cuentasParaCampoDocumento,
+  rellenarCuentasPorDefectoVacias,
+  resolverCuentaRetencionDocumento,
+  resolverCuentasInicialesDocumento,
+} from "@/lib/operaciones/cuentas-opciones";
 import {
   type CuentaOpcion,
   type DocumentoAcreditable,
@@ -68,7 +74,12 @@ export interface DocumentoFormDialogProps {
   secuencias: readonly SecuenciaNcfListado[];
   documentosAcreditables: readonly DocumentoAcreditable[];
   tasaItbisBps: number;
-  cuentaControlDefaultId: string | null;
+  cuentaItbisAdelantadoId?: string | null;
+  cuentaItbisPorPagarId?: string | null;
+  cuentaRetencionIsrId?: string | null;
+  cuentaRetencionItbisId?: string | null;
+  cuentaCxcDefaultId?: string | null;
+  cuentaCxpDefaultId?: string | null;
 }
 
 function esVenta(modo: ModoDocumento): boolean {
@@ -102,7 +113,7 @@ function tituloModo(modo: ModoDocumento): string {
 
 function formInicial(
   modo: ModoDocumento,
-  cuentaControlDefaultId: string | null,
+  cuentasIniciales: CuentasInicialesDocumento,
   tipoNcfInicial: string,
 ): FormDocumento {
   return {
@@ -115,9 +126,9 @@ function formInicial(
     retencionIsr: "",
     retencionItbis: "",
     cuentaId: "",
-    cuentaControlId: cuentaControlDefaultId ?? "",
-    cuentaImpuestoId: "",
-    cuentaRetencionId: "",
+    cuentaControlId: cuentasIniciales.cuentaControlId,
+    cuentaImpuestoId: cuentasIniciales.cuentaImpuestoId,
+    cuentaRetencionId: cuentasIniciales.cuentaRetencionId,
     tipoNcf: esVenta(modo) ? tipoNcfInicial : "",
     ncf: "",
     documentoAcreditadoId: "",
@@ -139,7 +150,12 @@ export function DocumentoFormDialog({
   secuencias,
   documentosAcreditables,
   tasaItbisBps,
-  cuentaControlDefaultId,
+  cuentaItbisAdelantadoId,
+  cuentaItbisPorPagarId,
+  cuentaRetencionIsrId,
+  cuentaRetencionItbisId,
+  cuentaCxcDefaultId,
+  cuentaCxpDefaultId,
 }: DocumentoFormDialogProps) {
   const venta = esVenta(modo);
   const nota = esNota(modo);
@@ -157,30 +173,111 @@ export function DocumentoFormDialog({
     return [...mapa.values()];
   }, [secuencias]);
 
+  const cuentasFiscales = useMemo(
+    () => ({
+      cuentaItbisAdelantadoId,
+      cuentaItbisPorPagarId,
+      cuentaRetencionIsrId,
+      cuentaRetencionItbisId,
+      cuentaCxcDefaultId,
+      cuentaCxpDefaultId,
+    }),
+    [
+      cuentaItbisAdelantadoId,
+      cuentaItbisPorPagarId,
+      cuentaRetencionIsrId,
+      cuentaRetencionItbisId,
+      cuentaCxcDefaultId,
+      cuentaCxpDefaultId,
+    ],
+  );
+
+  const cuentasIniciales = useMemo(
+    () =>
+      resolverCuentasInicialesDocumento(operacionDocumento, cuentasFiscales),
+    [operacionDocumento, cuentasFiscales],
+  );
+
   const [form, setForm] = useState<FormDocumento>(
     formInicial(
       modo,
-      cuentaControlDefaultId,
+      cuentasIniciales,
       secuenciasDisponibles[0]?.tipoComprobante ?? "",
     ),
   );
   const [ncfManual, setNcfManual] = useState(false);
+  const [cuentaRetencionManual, setCuentaRetencionManual] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null);
+  const aperturaRef = useRef<{ abierto: boolean; modo: ModoDocumento }>({
+    abierto: false,
+    modo,
+  });
 
   useEffect(() => {
-    if (!abierto) return;
-    setForm(
-      formInicial(
-        modo,
-        cuentaControlDefaultId,
-        secuenciasDisponibles[0]?.tipoComprobante ?? "",
-      ),
+    if (!abierto) {
+      aperturaRef.current = { abierto: false, modo };
+      return;
+    }
+
+    const reiniciar =
+      !aperturaRef.current.abierto || aperturaRef.current.modo !== modo;
+    const tipoNcfInicial = secuenciasDisponibles[0]?.tipoComprobante ?? "";
+
+    if (reiniciar) {
+      setForm(formInicial(modo, cuentasIniciales, tipoNcfInicial));
+      setNcfManual(secuenciasDisponibles.length === 0 && venta);
+      setCuentaRetencionManual(false);
+      setErrorGeneral(null);
+      setGuardando(false);
+    } else {
+      setForm((anterior) => ({
+        ...rellenarCuentasPorDefectoVacias(
+          anterior,
+          operacionDocumento,
+          cuentasFiscales,
+        ),
+        tipoNcf:
+          anterior.tipoNcf === "" && venta ? tipoNcfInicial : anterior.tipoNcf,
+      }));
+    }
+
+    aperturaRef.current = { abierto: true, modo };
+  }, [
+    abierto,
+    modo,
+    cuentasIniciales,
+    cuentasFiscales,
+    operacionDocumento,
+    secuenciasDisponibles,
+    venta,
+  ]);
+
+  useEffect(() => {
+    if (!abierto || cuentaRetencionManual) return;
+
+    const retencionIsr = aNumero(form.retencionIsr);
+    const retencionItbis = aNumero(form.retencionItbis);
+    if (retencionIsr <= 0 && retencionItbis <= 0) return;
+
+    const cuentaSugerida = resolverCuentaRetencionDocumento(
+      cuentasFiscales,
+      retencionIsr,
+      retencionItbis,
     );
-    setNcfManual(secuenciasDisponibles.length === 0 && venta);
-    setErrorGeneral(null);
-    setGuardando(false);
-  }, [abierto, modo, cuentaControlDefaultId, secuenciasDisponibles, venta]);
+    if (cuentaSugerida === "") return;
+
+    setForm((anterior) => {
+      if (anterior.cuentaRetencionId === cuentaSugerida) return anterior;
+      return { ...anterior, cuentaRetencionId: cuentaSugerida };
+    });
+  }, [
+    abierto,
+    cuentaRetencionManual,
+    cuentasFiscales,
+    form.retencionIsr,
+    form.retencionItbis,
+  ]);
 
   const opcionesTerceros = useMemo(
     () =>
@@ -610,7 +707,10 @@ export function DocumentoFormDialog({
                   id="documento-cuenta-retencion"
                   opciones={opcionesCuentaRetencion}
                   valor={form.cuentaRetencionId}
-                  onCambio={(valor) => actualizar("cuentaRetencionId", valor)}
+                  onCambio={(valor) => {
+                    setCuentaRetencionManual(true);
+                    actualizar("cuentaRetencionId", valor);
+                  }}
                   etiquetaVacia="Sin cuenta de retención"
                   buscable
                   aria-label="Cuenta de retenciones"

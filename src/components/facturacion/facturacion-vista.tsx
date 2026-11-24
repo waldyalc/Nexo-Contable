@@ -99,7 +99,12 @@ export interface FacturacionVistaProps {
   secuencias: readonly SecuenciaNcfListado[];
   documentosAcreditables: readonly DocumentoAcreditable[];
   tasaItbisBps: number;
-  cuentaCxcDefaultId: string | null;
+  cuentaItbisAdelantadoId?: string | null;
+  cuentaItbisPorPagarId?: string | null;
+  cuentaRetencionIsrId?: string | null;
+  cuentaRetencionItbisId?: string | null;
+  cuentaCxcDefaultId?: string | null;
+  cuentaCxpDefaultId?: string | null;
   periodoInicial: string;
   moneda: "DOP" | "USD";
 }
@@ -118,7 +123,12 @@ export function FacturacionVista({
   secuencias,
   documentosAcreditables,
   tasaItbisBps,
+  cuentaItbisAdelantadoId,
+  cuentaItbisPorPagarId,
+  cuentaRetencionIsrId,
+  cuentaRetencionItbisId,
   cuentaCxcDefaultId,
+  cuentaCxpDefaultId,
   periodoInicial,
   moneda,
 }: FacturacionVistaProps) {
@@ -407,7 +417,12 @@ export function FacturacionVista({
         secuencias={secuencias}
         documentosAcreditables={documentosAcreditables}
         tasaItbisBps={tasaItbisBps}
-        cuentaControlDefaultId={cuentaCxcDefaultId}
+        cuentaItbisAdelantadoId={cuentaItbisAdelantadoId}
+        cuentaItbisPorPagarId={cuentaItbisPorPagarId}
+        cuentaRetencionIsrId={cuentaRetencionIsrId}
+        cuentaRetencionItbisId={cuentaRetencionItbisId}
+        cuentaCxcDefaultId={cuentaCxcDefaultId}
+        cuentaCxpDefaultId={cuentaCxpDefaultId}
       />
 
       <TercerosSheet
