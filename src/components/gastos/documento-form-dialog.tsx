@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { aNumero, formatearMoneda, hoySantoDomingo } from "@/lib/formato";
+import { cuentasParaCampoDocumento } from "@/lib/operaciones/cuentas-opciones";
 import {
   type CuentaOpcion,
   type DocumentoAcreditable,
@@ -76,6 +77,13 @@ function esVenta(modo: ModoDocumento): boolean {
 
 function esNota(modo: ModoDocumento): boolean {
   return modo === "nota_credito_compra" || modo === "nota_credito_venta";
+}
+
+function opcionesDeCuentas(cuentas: readonly CuentaOpcion[]) {
+  return cuentas.map((cuenta) => ({
+    value: cuenta.id,
+    label: `${cuenta.codigo} · ${cuenta.nombre}`,
+  }));
 }
 
 function tipoDocumento(modo: ModoDocumento): EntradaDocumento["tipo"] {
@@ -135,6 +143,7 @@ export function DocumentoFormDialog({
 }: DocumentoFormDialogProps) {
   const venta = esVenta(modo);
   const nota = esNota(modo);
+  const operacionDocumento = venta ? "venta" : "compra";
 
   const secuenciasDisponibles = useMemo(() => {
     const mapa = new Map<string, SecuenciaNcfListado>();
@@ -192,18 +201,37 @@ export function DocumentoFormDialog({
     [terceros, venta],
   );
 
-  const opcionesCuentas = useMemo(() => {
-    const permitidas = venta
-      ? ["income", "asset", "liability"]
-      : ["expense", "cost", "asset"];
-    const filtradas = cuentas.filter((cuenta) =>
-      permitidas.includes(cuenta.clasificacion),
-    );
-    return (filtradas.length > 0 ? filtradas : cuentas).map((cuenta) => ({
-      value: cuenta.id,
-      label: `${cuenta.codigo} · ${cuenta.nombre}`,
-    }));
-  }, [cuentas, venta]);
+  const opcionesCuentaPrincipal = useMemo(
+    () =>
+      opcionesDeCuentas(
+        cuentasParaCampoDocumento(cuentas, operacionDocumento, "principal"),
+      ),
+    [cuentas, operacionDocumento],
+  );
+
+  const opcionesCuentaControl = useMemo(
+    () =>
+      opcionesDeCuentas(
+        cuentasParaCampoDocumento(cuentas, operacionDocumento, "control"),
+      ),
+    [cuentas, operacionDocumento],
+  );
+
+  const opcionesCuentaImpuesto = useMemo(
+    () =>
+      opcionesDeCuentas(
+        cuentasParaCampoDocumento(cuentas, operacionDocumento, "impuesto"),
+      ),
+    [cuentas, operacionDocumento],
+  );
+
+  const opcionesCuentaRetencion = useMemo(
+    () =>
+      opcionesDeCuentas(
+        cuentasParaCampoDocumento(cuentas, operacionDocumento, "retencion"),
+      ),
+    [cuentas, operacionDocumento],
+  );
 
   const opcionesSecuencias = useMemo(
     () =>
@@ -532,7 +560,7 @@ export function DocumentoFormDialog({
               >
                 <SelectCampo
                   id="documento-cuenta"
-                  opciones={opcionesCuentas}
+                  opciones={opcionesCuentaPrincipal}
                   valor={form.cuentaId}
                   onCambio={(valor) => actualizar("cuentaId", valor)}
                   etiquetaVacia="Selecciona la cuenta"
@@ -549,7 +577,7 @@ export function DocumentoFormDialog({
               >
                 <SelectCampo
                   id="documento-cuenta-control"
-                  opciones={opcionesCuentas}
+                  opciones={opcionesCuentaControl}
                   valor={form.cuentaControlId}
                   onCambio={(valor) => actualizar("cuentaControlId", valor)}
                   etiquetaVacia="Selecciona la cuenta de control"
@@ -565,7 +593,7 @@ export function DocumentoFormDialog({
               >
                 <SelectCampo
                   id="documento-cuenta-impuesto"
-                  opciones={opcionesCuentas}
+                  opciones={opcionesCuentaImpuesto}
                   valor={form.cuentaImpuestoId}
                   onCambio={(valor) => actualizar("cuentaImpuestoId", valor)}
                   etiquetaVacia="Sin cuenta de impuesto"
@@ -580,7 +608,7 @@ export function DocumentoFormDialog({
               >
                 <SelectCampo
                   id="documento-cuenta-retencion"
-                  opciones={opcionesCuentas}
+                  opciones={opcionesCuentaRetencion}
                   valor={form.cuentaRetencionId}
                   onCambio={(valor) => actualizar("cuentaRetencionId", valor)}
                   etiquetaVacia="Sin cuenta de retención"
