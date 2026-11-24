@@ -1,4 +1,5 @@
 import { type CookieOptions, createServerClient } from "@supabase/ssr";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import type { Database } from "./types";
 
@@ -17,7 +18,7 @@ export async function createClient() {
     );
   }
   const cookieStore = await cookies();
-  return createServerClient<Database>(url, key, {
+  const cliente = createServerClient<Database>(url, key, {
     cookies: {
       getAll() {
         return cookieStore.getAll();
@@ -33,4 +34,7 @@ export async function createClient() {
       },
     },
   });
+  // `@supabase/ssr@0.6` declara tres genéricos y `supabase-js@2.119` cinco:
+  // el cast conserva el esquema completo (`Functions`, `Tables`) para `rpc`/`from`.
+  return cliente as unknown as SupabaseClient<Database>;
 }

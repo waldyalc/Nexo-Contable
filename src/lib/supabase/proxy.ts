@@ -8,7 +8,15 @@ type CookieToSet = {
   options: CookieOptions;
 };
 
+/** Rutas accesibles sin sesión (login y retorno de Google OAuth). */
 const PUBLIC_PATHS = ["/login", "/auth/callback"];
+
+/** Rutas que exigen sesión pero quedan fuera del shell de la aplicación. */
+const RUTAS_AUTENTICADAS = ["/definir-password"];
+
+function coincideRuta(pathname: string, base: string): boolean {
+  return pathname === base || pathname.startsWith(`${base}/`);
+}
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -39,19 +47,26 @@ export async function updateSession(request: NextRequest) {
   const { data } = await supabase.auth.getClaims();
   const isAuthenticated = Boolean(data?.claims?.sub);
   const { pathname } = request.nextUrl;
-  const isPublic = PUBLIC_PATHS.some(
-    (p) => pathname === p || pathname.startsWith(`${p}/`),
+  const isPublic = PUBLIC_PATHS.some((p) => coincideRuta(pathname, p));
+  const requiereSesion = RUTAS_AUTENTICADAS.some((p) =>
+    coincideRuta(pathname, p),
   );
 
-  if (!isAuthenticated && !isPublic) {
+  // Toda ruta que no sea pública exige sesión: el primer ingreso pasa por
+  // `/definir-password` antes de entrar al shell multi-empresa.
+  if (!isAuthenticated && (!isPublic || requiereSesion)) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
+    loginUrl.search = "";
     return NextResponse.redirect(loginUrl);
   }
 
-  if (isAuthenticated && pathname === "/login") {
+  // Un usuario con sesión que vuelve al login entra directo a la aplicación;
+  // `obtenerContextoApp()` lo manda a `/definir-password` si aún no tiene clave.
+  if (isAuthenticated && coincideRuta(pathname, "/login")) {
     const dashUrl = request.nextUrl.clone();
     dashUrl.pathname = "/dashboard";
+    dashUrl.search = "";
     return NextResponse.redirect(dashUrl);
   }
 
