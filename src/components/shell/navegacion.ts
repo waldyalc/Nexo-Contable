@@ -13,7 +13,9 @@ import {
   IconReceipt2,
   IconReceiptTax,
   IconScale,
+  IconSettings,
   IconShoppingCart,
+  IconUserCircle,
   IconUserCog,
   IconUsersGroup,
 } from "@tabler/icons-react";
@@ -39,7 +41,7 @@ export interface ItemNavegacion {
 }
 
 export interface GrupoNavegacion {
-  titulo: "GENERAL" | "OPERACIONES" | "ADMINISTRACIÓN";
+  titulo: "GENERAL" | "OPERACIONES" | "SISTEMA";
   items: readonly ItemNavegacion[];
 }
 
@@ -145,34 +147,53 @@ export const GRUPOS_NAVEGACION: readonly GrupoNavegacion[] = [
     ],
   },
   {
-    titulo: "ADMINISTRACIÓN",
+    titulo: "SISTEMA",
     items: [
       {
-        etiqueta: "Empresas",
-        href: "/empresas",
-        icono: IconBuilding,
-        roles: ["admin_global"],
-      },
-      {
-        etiqueta: "Usuarios",
-        href: "/usuarios",
-        icono: IconUserCog,
-        roles: ["admin_global", "admin_empresa"],
-      },
-      {
-        etiqueta: "Auditoría",
-        href: "/auditoria",
-        icono: IconHistory,
-        roles: ["admin_global", "admin_empresa"],
+        etiqueta: "Configuración",
+        href: "/configuracion",
+        icono: IconSettings,
       },
     ],
+  },
+];
+
+/** Rutas administrativas accesibles desde el menú de perfil y Configuración. */
+export const RUTAS_PERFIL_ADMIN: readonly ItemNavegacion[] = [
+  {
+    etiqueta: "Configuración",
+    href: "/configuracion",
+    icono: IconSettings,
+  },
+  {
+    etiqueta: "Empresas",
+    href: "/empresas",
+    icono: IconBuilding,
+    roles: ["admin_global"],
+  },
+  {
+    etiqueta: "Usuarios",
+    href: "/usuarios",
+    icono: IconUserCog,
+    roles: ["admin_global", "admin_empresa"],
+  },
+  {
+    etiqueta: "Auditoría",
+    href: "/auditoria",
+    icono: IconHistory,
+    roles: ["admin_global", "admin_empresa"],
+  },
+  {
+    etiqueta: "Mi perfil y seguridad",
+    href: "/perfil",
+    icono: IconUserCircle,
   },
 ];
 
 const TITULO_GRUPO: Record<GrupoNavegacion["titulo"], string> = {
   GENERAL: "General",
   OPERACIONES: "Operaciones",
-  ADMINISTRACIÓN: "Administración",
+  SISTEMA: "Sistema",
 };
 
 /** Filtra el menú según el rol efectivo del usuario en la empresa activa. */
@@ -199,12 +220,23 @@ export function migasParaRuta(pathname: string): MigaDePan[] {
 
       if (!activa) continue;
 
-      if (grupo.titulo === "GENERAL") {
+      if (grupo.titulo === "GENERAL" || grupo.titulo === "SISTEMA") {
         return [{ etiqueta: item.etiqueta }];
       }
 
       return [
         { etiqueta: TITULO_GRUPO[grupo.titulo] },
+        { etiqueta: item.etiqueta, href: item.href },
+      ];
+    }
+  }
+
+  for (const item of RUTAS_PERFIL_ADMIN) {
+    const activa =
+      pathname === item.href || pathname.startsWith(`${item.href}/`);
+    if (activa) {
+      return [
+        { etiqueta: "Configuración", href: "/configuracion" },
         { etiqueta: item.etiqueta, href: item.href },
       ];
     }

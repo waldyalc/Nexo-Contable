@@ -5,8 +5,8 @@ import { usePathname } from "next/navigation";
 
 import { MigasDePan } from "@/components/pagina/migas-de-pan";
 import { CompanySwitcher } from "@/components/shell/company-switcher";
-import { iniciales, migasParaRuta } from "@/components/shell/navegacion";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { migasParaRuta } from "@/components/shell/navegacion";
+import { UserMenu } from "@/components/shell/user-menu";
 import { Button } from "@/components/ui/button";
 import type { ContextoApp } from "@/lib/auth/sesion";
 
@@ -17,15 +17,11 @@ export interface TopbarProps {
 
 /**
  * Barra superior sticky de 68 px: menú móvil, migas de pan, selector
- * "Mis empresas" y avatar del usuario.
+ * "Mis empresas" y menú desplegable del perfil del usuario.
  */
 export function Topbar({ contexto, onAbrirMenu }: TopbarProps) {
   const pathname = usePathname();
   const migas = migasParaRuta(pathname);
-  const nombreVisible =
-    contexto.perfil.nombre.trim() === ""
-      ? contexto.perfil.email
-      : contexto.perfil.nombre;
 
   return (
     <header className="sticky top-0 z-30 flex h-[68px] shrink-0 items-center justify-between gap-3 border-b border-border bg-card/85 px-4 backdrop-blur-md lg:px-6">
@@ -50,18 +46,8 @@ export function Topbar({ contexto, onAbrirMenu }: TopbarProps) {
           esAdminGlobal={contexto.esAdminGlobal}
         />
 
-        <div className="flex min-w-0 items-center gap-2 border-l border-border pl-2 sm:pl-3">
-          <Avatar size="sm">
-            <AvatarFallback>{iniciales(nombreVisible)}</AvatarFallback>
-          </Avatar>
-          <div className="hidden min-w-0 flex-col sm:flex">
-            <span className="max-w-[150px] truncate text-sm leading-tight font-medium text-foreground">
-              {nombreVisible}
-            </span>
-            <span className="max-w-[150px] truncate text-[11px] leading-tight text-muted-foreground">
-              {contexto.perfil.email}
-            </span>
-          </div>
+        <div className="border-l border-border pl-2 sm:pl-3">
+          <UserMenu contexto={contexto} />
         </div>
       </div>
     </header>

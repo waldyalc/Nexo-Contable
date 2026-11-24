@@ -1,18 +1,12 @@
 "use client";
 
-import { IconLogout } from "@tabler/icons-react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { usePathname } from "next/navigation";
 
 import {
-  ETIQUETAS_ROL,
   GRUPOS_NAVEGACION,
   filtrarGruposPorRol,
-  iniciales,
 } from "@/components/shell/navegacion";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import {
   Sheet,
   SheetContent,
@@ -20,7 +14,6 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import type { ContextoApp } from "@/lib/auth/sesion";
-import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
 interface ContenidoSidebarProps {
@@ -30,23 +23,7 @@ interface ContenidoSidebarProps {
 
 function ContenidoSidebar({ contexto, onNavegar }: ContenidoSidebarProps) {
   const pathname = usePathname();
-  const router = useRouter();
-  const [saliendo, setSaliendo] = useState(false);
-
   const grupos = filtrarGruposPorRol(GRUPOS_NAVEGACION, contexto.rolActivo);
-  const nombreVisible =
-    contexto.perfil.nombre.trim() === ""
-      ? contexto.perfil.email
-      : contexto.perfil.nombre;
-  const rolVisible = ETIQUETAS_ROL[contexto.rolActivo ?? "usuario"];
-
-  async function cerrarSesion() {
-    setSaliendo(true);
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.replace("/login");
-    router.refresh();
-  }
 
   return (
     <div className="flex h-full flex-col bg-card">
@@ -96,32 +73,6 @@ function ContenidoSidebar({ contexto, onNavegar }: ContenidoSidebarProps) {
           </div>
         ))}
       </nav>
-
-      <div className="shrink-0 border-t border-border p-3">
-        <div className="flex items-center gap-2.5 rounded-[10px] px-1 py-1.5">
-          <Avatar size="sm">
-            <AvatarFallback>{iniciales(nombreVisible)}</AvatarFallback>
-          </Avatar>
-          <div className="flex min-w-0 flex-1 flex-col">
-            <p className="truncate text-sm font-medium text-foreground">
-              {nombreVisible}
-            </p>
-            <p className="truncate text-[11px] text-muted-foreground">
-              {rolVisible}
-            </p>
-          </div>
-        </div>
-        <Button
-          type="button"
-          variant="ghost"
-          className="mt-1 h-9 w-full justify-start gap-2 text-muted-foreground"
-          disabled={saliendo}
-          onClick={cerrarSesion}
-        >
-          <IconLogout className="size-4" />
-          {saliendo ? "Cerrando sesión…" : "Cerrar sesión"}
-        </Button>
-      </div>
     </div>
   );
 }
