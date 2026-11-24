@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { DM_Sans, Manrope } from "next/font/google";
 import type { ReactNode } from "react";
+
+import { Toaster } from "@/components/ui/sonner";
+
 import "./globals.css";
 
 const dmSans = DM_Sans({
@@ -26,7 +29,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="es" className={`${dmSans.variable} ${manrope.variable}`}>
-      <body>{children}</body>
+      <body>
+        {children}
+        <Toaster position="top-right" />
+      </body>
     </html>
   );
 }

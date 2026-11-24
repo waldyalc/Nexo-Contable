@@ -1,0 +1,161 @@
+"use client";
+
+import { IconLogout } from "@tabler/icons-react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
+
+import {
+  ETIQUETAS_ROL,
+  GRUPOS_NAVEGACION,
+  filtrarGruposPorRol,
+  iniciales,
+} from "@/components/shell/navegacion";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import type { ContextoApp } from "@/lib/auth/sesion";
+import { createClient } from "@/lib/supabase/client";
+import { cn } from "@/lib/utils";
+
+interface ContenidoSidebarProps {
+  contexto: ContextoApp;
+  onNavegar?: () => void;
+}
+
+function ContenidoSidebar({ contexto, onNavegar }: ContenidoSidebarProps) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const [saliendo, setSaliendo] = useState(false);
+
+  const grupos = filtrarGruposPorRol(GRUPOS_NAVEGACION, contexto.rolActivo);
+  const nombreVisible =
+    contexto.perfil.nombre.trim() === ""
+      ? contexto.perfil.email
+      : contexto.perfil.nombre;
+  const rolVisible = ETIQUETAS_ROL[contexto.rolActivo ?? "usuario"];
+
+  async function cerrarSesion() {
+    setSaliendo(true);
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.replace("/login");
+    router.refresh();
+  }
+
+  return (
+    <div className="flex h-full flex-col bg-card">
+      <div className="flex h-[68px] shrink-0 items-center gap-2.5 border-b border-border px-4 pr-12">
+        <span className="font-display flex size-9 items-center justify-center rounded-[10px] bg-primary text-base font-bold text-primary-foreground shadow-[0_6px_16px_rgba(23,107,83,0.22)]">
+          N
+        </span>
+        <span className="font-display truncate text-base font-bold tracking-[-0.03em] text-foreground">
+          Nexo Contable
+        </span>
+      </div>
+
+      <nav className="flex-1 overflow-y-auto px-3 py-4">
+        {grupos.map((grupo) => (
+          <div key={grupo.titulo} className="mb-4 flex flex-col gap-0.5">
+            <p className="px-2 pb-1 text-[10px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
+              {grupo.titulo}
+            </p>
+            {grupo.items.map((item) => {
+              const activo =
+                pathname === item.href || pathname.startsWith(`${item.href}/`);
+              const Icono = item.icono;
+
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={onNavegar}
+                  aria-current={activo ? "page" : undefined}
+                  className={cn(
+                    "flex h-9 items-center gap-2.5 rounded-[10px] px-2.5 text-sm font-medium transition-colors",
+                    activo
+                      ? "bg-secondary text-secondary-foreground"
+                      : "text-foreground hover:bg-muted",
+                  )}
+                >
+                  <Icono
+                    className={cn(
+                      "size-4 shrink-0",
+                      activo ? "text-primary" : "text-muted-foreground",
+                    )}
+                  />
+                  <span className="truncate">{item.etiqueta}</span>
+                </Link>
+              );
+            })}
+          </div>
+        ))}
+      </nav>
+
+      <div className="shrink-0 border-t border-border p-3">
+        <div className="flex items-center gap-2.5 rounded-[10px] px-1 py-1.5">
+          <Avatar size="sm">
+            <AvatarFallback>{iniciales(nombreVisible)}</AvatarFallback>
+          </Avatar>
+          <div className="flex min-w-0 flex-1 flex-col">
+            <p className="truncate text-sm font-medium text-foreground">
+              {nombreVisible}
+            </p>
+            <p className="truncate text-[11px] text-muted-foreground">
+              {rolVisible}
+            </p>
+          </div>
+        </div>
+        <Button
+          type="button"
+          variant="ghost"
+          className="mt-1 h-9 w-full justify-start gap-2 text-muted-foreground"
+          disabled={saliendo}
+          onClick={cerrarSesion}
+        >
+          <IconLogout className="size-4" />
+          {saliendo ? "Cerrando sesión…" : "Cerrar sesión"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+export interface SidebarNavProps {
+  contexto: ContextoApp;
+  menuMovilAbierto: boolean;
+  onMenuMovilChange: (abierto: boolean) => void;
+}
+
+/** Sidebar fija de 248 px en escritorio y `Sheet` deslizante en móvil. */
+export function SidebarNav({
+  contexto,
+  menuMovilAbierto,
+  onMenuMovilChange,
+}: SidebarNavProps) {
+  return (
+    <>
+      <aside className="sticky top-0 hidden h-screen w-[248px] shrink-0 border-r border-border lg:flex lg:flex-col">
+        <ContenidoSidebar contexto={contexto} />
+      </aside>
+
+      <Sheet open={menuMovilAbierto} onOpenChange={onMenuMovilChange}>
+        <SheetContent side="left" className="w-[280px] max-w-[85vw] p-0">
+          <SheetTitle className="sr-only">Menú de navegación</SheetTitle>
+          <SheetDescription className="sr-only">
+            Navegación principal de Nexo Contable
+          </SheetDescription>
+          <ContenidoSidebar
+            contexto={contexto}
+            onNavegar={() => onMenuMovilChange(false)}
+          />
+        </SheetContent>
+      </Sheet>
+    </>
+  );
+}
