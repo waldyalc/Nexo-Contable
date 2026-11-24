@@ -16,7 +16,9 @@
     "lint": "biome lint .",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:pgtap": "bash scripts/pgtap-local.sh",
     "test:e2e": "playwright test",
+    "captura": "tsx scripts/captura.ts",
     "supabase": "node scripts/supabase-cli.mjs",
     "db:types": "node scripts/supabase-cli.mjs gen types typescript --linked > src/lib/supabase/types.ts",
     "prepare": "husky"
