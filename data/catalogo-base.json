@@ -1,0 +1,2778 @@
+[
+  {
+    "code": "1",
+    "name": "ACTIVOS",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "",
+    "is_header": true
+  },
+  {
+    "code": "10",
+    "name": "ACTIVOS CORRIENTES",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "1",
+    "is_header": true
+  },
+  {
+    "code": "1001",
+    "name": "EFECTIVO EN CAJA Y BANCOS",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "10",
+    "is_header": true
+  },
+  {
+    "code": "100101",
+    "name": "CAJAS EN RD$",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "1001",
+    "is_header": true
+  },
+  {
+    "code": "10010101",
+    "name": "CAJA GENERAL EFECTIVO EN RD$",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "100101",
+    "is_header": false
+  },
+  {
+    "code": "100102",
+    "name": "CAJAS EN US$",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "1001",
+    "is_header": true
+  },
+  {
+    "code": "10010201",
+    "name": "CAJAS EN US$",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "100102",
+    "is_header": false
+  },
+  {
+    "code": "10010202",
+    "name": "PRIMA EN CAJA US$",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "100102",
+    "is_header": false
+  },
+  {
+    "code": "100103",
+    "name": "CAJA CHICA",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "1001",
+    "is_header": true
+  },
+  {
+    "code": "10010301",
+    "name": "CAJA CHICA EN RD$",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "100103",
+    "is_header": false
+  },
+  {
+    "code": "100104",
+    "name": "CAJA CHICA EN MONEDA EXTRANEJERA",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "1001",
+    "is_header": true
+  },
+  {
+    "code": "10010401",
+    "name": "CAJA CHICA EN US$",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "100104",
+    "is_header": false
+  },
+  {
+    "code": "10010402",
+    "name": "PRIMA EN CAJA CHICA EN US$",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "100104",
+    "is_header": false
+  },
+  {
+    "code": "100105",
+    "name": "EFECTIVO EN BANCOS",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "1001",
+    "is_header": true
+  },
+  {
+    "code": "10010501",
+    "name": "EFECTIVO EN BANCOS RD$",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "100105",
+    "is_header": true
+  },
+  {
+    "code": "1001050101",
+    "name": "CUENTA BANCO 0001",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "10010501",
+    "is_header": false
+  },
+  {
+    "code": "10010502",
+    "name": "EFECTIVO EN BANCOS US$",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "100105",
+    "is_header": true
+  },
+  {
+    "code": "1001050201",
+    "name": "CUENTA BANCO 0001 DOLARES",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "10010502",
+    "is_header": false
+  },
+  {
+    "code": "1001050202",
+    "name": "PRIMA CUENTA BANCO 0001 DOLARES",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "10010502",
+    "is_header": false
+  },
+  {
+    "code": "10010503",
+    "name": "INVERSIONES A CORTO PLAZO EN BANCOS",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "100105",
+    "is_header": true
+  },
+  {
+    "code": "1002",
+    "name": "DOCUMENTOS Y CUENTAS POR COBRAR",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "10",
+    "is_header": true
+  },
+  {
+    "code": "100201",
+    "name": "CUENTAS POR COBRAR CLIENTES",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "1002",
+    "is_header": true
+  },
+  {
+    "code": "10020101",
+    "name": "CLIENTE EN RD$",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "100201",
+    "is_header": true
+  },
+  {
+    "code": "10020102",
+    "name": "CLIENTE EN US$",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "100201",
+    "is_header": true
+  },
+  {
+    "code": "1002010299",
+    "name": "PRIMA POR COBRAR CLIENTES EN US$",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "10020102",
+    "is_header": false
+  },
+  {
+    "code": "10020103",
+    "name": "CUENTAS POR COBRAR - CHEQUES DEVUELTOS",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "100201",
+    "is_header": true
+  },
+  {
+    "code": "1002010301",
+    "name": "CHEQUES DEVUELTOS",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "10020103",
+    "is_header": false
+  },
+  {
+    "code": "1002010302",
+    "name": "COMISION POR CHEQUES DEVUELTOS",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "10020103",
+    "is_header": false
+  },
+  {
+    "code": "10020104",
+    "name": "RESERVAS PARA CUENTAS INCOBRABLES",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "100201",
+    "is_header": true
+  },
+  {
+    "code": "1002010401",
+    "name": "RESERVAS PARA CUENTAS INCOBRABLES",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "10020104",
+    "is_header": false
+  },
+  {
+    "code": "10020105",
+    "name": "CUENTAS POR COBRAR EMPLEADOS",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "100201",
+    "is_header": true
+  },
+  {
+    "code": "1002010501",
+    "name": "CUENTAS POR COBRAR EMPLEADOS",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "10020105",
+    "is_header": false
+  },
+  {
+    "code": "1002010502",
+    "name": "FALTANTE EN CAJA RD$",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "10020105",
+    "is_header": true
+  },
+  {
+    "code": "100201050201",
+    "name": "FALTANTE EN CAJA RD$",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "1002010502",
+    "is_header": false
+  },
+  {
+    "code": "1002010503",
+    "name": "FALTANTE EN CAJA US$",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "10020105",
+    "is_header": true
+  },
+  {
+    "code": "100201050301",
+    "name": "FALTANTE EN CAJA US$",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "1002010503",
+    "is_header": false
+  },
+  {
+    "code": "100201050302",
+    "name": "PRIMA EN FALTANTE EN CAJA US$",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "1002010503",
+    "is_header": false
+  },
+  {
+    "code": "10020106",
+    "name": "CUENTAS POR COBRAR ACCIONISTAS",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "100201",
+    "is_header": true
+  },
+  {
+    "code": "10020107",
+    "name": "CUENTAS POR COBRAR RELACIONADAS",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "100201",
+    "is_header": true
+  },
+  {
+    "code": "1002010799",
+    "name": "OTRAS CUENTAS POR COBRAR RELACIONADAS",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "10020107",
+    "is_header": false
+  },
+  {
+    "code": "10020108",
+    "name": "ANTICIPOS DE SUPLIDORES EN RD$",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "100201",
+    "is_header": true
+  },
+  {
+    "code": "1002010801",
+    "name": "ANTICIPOS DE SUPLIDORES EN RD$",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "10020108",
+    "is_header": false
+  },
+  {
+    "code": "10020109",
+    "name": "ANTICIPOS DE SUPLIDORES EN US$",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "100201",
+    "is_header": true
+  },
+  {
+    "code": "1002019801",
+    "name": "ANTICIPOS DE SUPLIDORES EN US$",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "10020109",
+    "is_header": false
+  },
+  {
+    "code": "1002019802",
+    "name": "PRIMA EN ANTICIPOS DE SUPLIDORES EN US$",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "10020109",
+    "is_header": false
+  },
+  {
+    "code": "10020199",
+    "name": "OTRAS CUENTAS POR COBRAR",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "100201",
+    "is_header": true
+  },
+  {
+    "code": "1002019901",
+    "name": "RECLAMACIONES BANCARIAS",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "10020199",
+    "is_header": false
+  },
+  {
+    "code": "1002019999",
+    "name": "OTRAS CUENTAS POR COBRAR",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "10020199",
+    "is_header": false
+  },
+  {
+    "code": "1003",
+    "name": "INVENTARIO",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "10",
+    "is_header": true
+  },
+  {
+    "code": "100301",
+    "name": "INVENTARIO DE PRODUCTOS EN ALMACEN",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "1003",
+    "is_header": true
+  },
+  {
+    "code": "100302",
+    "name": "INVENTARIO EN TRANSITO",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "1003",
+    "is_header": false
+  },
+  {
+    "code": "100303",
+    "name": "REVALORIZACION DE COSTOS",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "1003",
+    "is_header": false
+  },
+  {
+    "code": "1004",
+    "name": "GASTOS PAGADOS POR ANTICIPADO",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "10",
+    "is_header": true
+  },
+  {
+    "code": "100401",
+    "name": "DIRECCION GENERAL DE IMPUESTOS INTERNOS",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "1004",
+    "is_header": true
+  },
+  {
+    "code": "10040101",
+    "name": "ANTICIPOS EN I.S.R.",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "100401",
+    "is_header": true
+  },
+  {
+    "code": "1004010101",
+    "name": "ANTICIPOS EN I.S.R. PAGADOS",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "10040101",
+    "is_header": false
+  },
+  {
+    "code": "1004010113",
+    "name": "RETENCIONES ISR PAGOS PROVEEDORES DEL ESTADO (5%)",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "10040101",
+    "is_header": false
+  },
+  {
+    "code": "1004010114",
+    "name": "RETENCIONES ISR OTRAS RENTAS (10%)",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "10040101",
+    "is_header": false
+  },
+  {
+    "code": "1004010115",
+    "name": "RETENCIONES ISR OTRAS RENTENCIONES (Rentas Presuntas) (2%)",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "10040101",
+    "is_header": false
+  },
+  {
+    "code": "1004010103",
+    "name": "CREDITO FISCAL ISR A COMPENSAR AUTORIZADO POR LA DGII",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "10040101",
+    "is_header": false
+  },
+  {
+    "code": "1004010199",
+    "name": "OTROS ANTICIPOS DE IMPUESTOS PAGADOS",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "10040101",
+    "is_header": false
+  },
+  {
+    "code": "10040102",
+    "name": "ITBIS A FAVOR",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "100401",
+    "is_header": true
+  },
+  {
+    "code": "1004010201",
+    "name": "ITBIS A FAVOR POR COMPENSAR DECLARADO",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "10040102",
+    "is_header": false
+  },
+  {
+    "code": "1004010202",
+    "name": "RETENCION DEL 30% DEL ITBIS",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "10040102",
+    "is_header": false
+  },
+  {
+    "code": "1004010203",
+    "name": "RETENCION DEL 100% DEL ITBIS",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "10040102",
+    "is_header": false
+  },
+  {
+    "code": "1004010204",
+    "name": "RETENCION DEL 100% DEL ITBIS Norma 07-09",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "10040102",
+    "is_header": false
+  },
+  {
+    "code": "10040203",
+    "name": "IMPUESTO SOBRE LA RENTA DIFERIDO-ACTIVO",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "100401",
+    "is_header": false
+  },
+  {
+    "code": "100402",
+    "name": "PLACAS, PATENTES Y REVISTAS VEHICULOS",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "1004",
+    "is_header": false
+  },
+  {
+    "code": "100403",
+    "name": "AFILIACIONES GREMIALES",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "1004",
+    "is_header": false
+  },
+  {
+    "code": "100404",
+    "name": "FONDO DE CAJA CHICA POR LIQUIDAR",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "1004",
+    "is_header": false
+  },
+  {
+    "code": "100498",
+    "name": "CARGOS Y CREDITOS POR LIQUIDAR",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "1004",
+    "is_header": false
+  },
+  {
+    "code": "100499",
+    "name": "OTROS GASTOS PAGADOS POR ANTICIPADO",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "1004",
+    "is_header": false
+  },
+  {
+    "code": "11",
+    "name": "INVERSIONES A LARGO PLAZO",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "1",
+    "is_header": true
+  },
+  {
+    "code": "1101",
+    "name": "INVERSIONES EN ACCIONES",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "11",
+    "is_header": true
+  },
+  {
+    "code": "110101",
+    "name": "INVERSIONES EN ACCIONES EN OTRAS COMPAÑIAS",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "1101",
+    "is_header": false
+  },
+  {
+    "code": "1102",
+    "name": "INVERSIONES EN TITULOS Y CERTIFICADOS FINANCIEROS",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "11",
+    "is_header": true
+  },
+  {
+    "code": "110201",
+    "name": "INVERSIONES EN EL BANCO CENTRAL DE LA REP. DOM.",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "1102",
+    "is_header": false
+  },
+  {
+    "code": "12",
+    "name": "ACTIVOS FIJOS",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "1",
+    "is_header": true
+  },
+  {
+    "code": "1201",
+    "name": "TERRENO",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "12",
+    "is_header": true
+  },
+  {
+    "code": "120101",
+    "name": "TERRENO",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "1201",
+    "is_header": false
+  },
+  {
+    "code": "120102",
+    "name": "DEPRECIACION ACUMULADA TERRENO",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "1201",
+    "is_header": true
+  },
+  {
+    "code": "120103",
+    "name": "DEPRECIACION ACUMULADA TERRENO",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "1201",
+    "is_header": false
+  },
+  {
+    "code": "1202",
+    "name": "EDIFICACIONES",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "12",
+    "is_header": true
+  },
+  {
+    "code": "120201",
+    "name": "EDIFICACIONES",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "1202",
+    "is_header": false
+  },
+  {
+    "code": "120202",
+    "name": "DEPRECIACION ACUMULADA EDIFICACIONES",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "1202",
+    "is_header": false
+  },
+  {
+    "code": "120203",
+    "name": "DEPRECIACION ACUMULADA EDIFICACIONES",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "1202",
+    "is_header": true
+  },
+  {
+    "code": "1203",
+    "name": "MOBILIARIO Y EQUIPOS DE OFICINA",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "12",
+    "is_header": true
+  },
+  {
+    "code": "120301",
+    "name": "MOBILIARIO Y EQUIPOS DE OFICINA",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "1203",
+    "is_header": false
+  },
+  {
+    "code": "120302",
+    "name": "DEPRECIACION ACUMULADA MOBILIARIO Y EQUIPOS DE OFICINA",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "1203",
+    "is_header": false
+  },
+  {
+    "code": "1204",
+    "name": "EQUIPOS DE COMPUTOS Y TELECOMUNICACIONES",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "12",
+    "is_header": true
+  },
+  {
+    "code": "120401",
+    "name": "EQUIPOS DE COMPUTOS Y TELECOMUNICACIONES",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "1204",
+    "is_header": false
+  },
+  {
+    "code": "120402",
+    "name": "DEPRECIACION ACUMULADA EQUIPOS DE COMPUTOS Y TELECOMUNICACIONES",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "1204",
+    "is_header": false
+  },
+  {
+    "code": "1205",
+    "name": "EQUIPOS DE TRANSPORTE",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "12",
+    "is_header": true
+  },
+  {
+    "code": "120501",
+    "name": "EQUIPOS DE TRANSPORTE",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "1205",
+    "is_header": false
+  },
+  {
+    "code": "120502",
+    "name": "DEPRECIACION ACUMULADA EQUIPOS DE TRANSPORTE",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "1205",
+    "is_header": false
+  },
+  {
+    "code": "1206",
+    "name": "MAQUINARIAS Y EQUIPOS",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "12",
+    "is_header": true
+  },
+  {
+    "code": "120601",
+    "name": "MAQUINARIAS Y EQUIPOS",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "1206",
+    "is_header": false
+  },
+  {
+    "code": "120602",
+    "name": "DEPRECIACION ACUMULADA MAQUINARIAS Y EQUIPOS",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "1206",
+    "is_header": false
+  },
+  {
+    "code": "1207",
+    "name": "OTROS ACTIVOS DEPRECIABLES",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "12",
+    "is_header": true
+  },
+  {
+    "code": "120701",
+    "name": "OTROS ACTIVOS DEPRECIABLES",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "1207",
+    "is_header": false
+  },
+  {
+    "code": "120702",
+    "name": "DEPRECIACION ACUMULADA OTROS ACTIVOS DEPRECIABLES",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "1207",
+    "is_header": false
+  },
+  {
+    "code": "1208",
+    "name": "MEJORAS EN PROPIEDAD ARRENDADA",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "12",
+    "is_header": true
+  },
+  {
+    "code": "120801",
+    "name": "MEJORAS EN PROPIEDAD ARRENDADA",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "1208",
+    "is_header": false
+  },
+  {
+    "code": "120802",
+    "name": "AMORTIZACION MEJORAS EN PROPIEDAD ARRENDADA",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "1208",
+    "is_header": false
+  },
+  {
+    "code": "1209",
+    "name": "ACTIVOS FIJOS EN PROCESO",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "12",
+    "is_header": true
+  },
+  {
+    "code": "120901",
+    "name": "TERRENO EN PROCESO DE CAPITALIZACION",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "1209",
+    "is_header": false
+  },
+  {
+    "code": "120902",
+    "name": "EDIFICACIONES EN PROCESO DE CAPITALIZACION",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "1209",
+    "is_header": false
+  },
+  {
+    "code": "120903",
+    "name": "MOBILIARIO Y EQUIPOS DE OFICINA EN PROCESO DE INSTALACION",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "1209",
+    "is_header": false
+  },
+  {
+    "code": "120904",
+    "name": "EQUIPOS DE COMPUTOS Y TELECOM. EN PROCESO DE INSTACION",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "1209",
+    "is_header": false
+  },
+  {
+    "code": "120905",
+    "name": "EQUIPOS DE TRANSPORTE EN PROCESO DE LIQUIDACION",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "1209",
+    "is_header": false
+  },
+  {
+    "code": "120907",
+    "name": "OTROS ACTIVOS DEPRECIABLES EN PROCESO DE INSTALACION",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "1209",
+    "is_header": false
+  },
+  {
+    "code": "13",
+    "name": "OTROS ACTIVOS",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "1",
+    "is_header": true
+  },
+  {
+    "code": "1301",
+    "name": "DEPOSITOS Y FIANZAS",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "13",
+    "is_header": true
+  },
+  {
+    "code": "130101",
+    "name": "DEPOSITOS",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "1301",
+    "is_header": false
+  },
+  {
+    "code": "130102",
+    "name": "FIANZAS",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "1301",
+    "is_header": false
+  },
+  {
+    "code": "1302",
+    "name": "GASTOS DE ORGANIZACION Y CONSTITUCION",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "13",
+    "is_header": true
+  },
+  {
+    "code": "130201",
+    "name": "GASTOS DE ORGANIZACION Y CONSTITUCION AL COSTO",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "1302",
+    "is_header": false
+  },
+  {
+    "code": "130202",
+    "name": "AMORTIZACION GASTOS DE ORGANIZACION Y CONSTITUCION",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "1302",
+    "is_header": false
+  },
+  {
+    "code": "1303",
+    "name": "LICENCIAS Y SOFTWARES",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "13",
+    "is_header": true
+  },
+  {
+    "code": "130301",
+    "name": "LICENCIAS Y SOFTWARES AL COSTO",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "1303",
+    "is_header": false
+  },
+  {
+    "code": "130302",
+    "name": "AMORTIZACION DE LICENCIAS Y SOFTWARES",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "1303",
+    "is_header": false
+  },
+  {
+    "code": "1399",
+    "name": "OTROS ACTIVOS VARIOS",
+    "classification": "asset",
+    "normal_balance": "debit",
+    "parent_code": "13",
+    "is_header": false
+  },
+  {
+    "code": "2",
+    "name": "PASIVOS",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "",
+    "is_header": true
+  },
+  {
+    "code": "20",
+    "name": "PASIVOS CORRIENTES",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "2",
+    "is_header": true
+  },
+  {
+    "code": "2001",
+    "name": "DOCUMENTOS POR PAGAR A CORTO PLAZO",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "20",
+    "is_header": true
+  },
+  {
+    "code": "200101",
+    "name": "PORCION CORRIENTE DE DEUDA A LARGO PLAZO",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "2001",
+    "is_header": false
+  },
+  {
+    "code": "200102",
+    "name": "INTERESES POR PAGAR",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "2001",
+    "is_header": true
+  },
+  {
+    "code": "20010201",
+    "name": "INTERESES POR PAGAR RD$",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "200102",
+    "is_header": false
+  },
+  {
+    "code": "200103",
+    "name": "LINEA DE CREDITO",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "2001",
+    "is_header": true
+  },
+  {
+    "code": "2002",
+    "name": "CUENTAS POR PAGAR",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "20",
+    "is_header": true
+  },
+  {
+    "code": "200201",
+    "name": "CUENTAS POR PAGAR SUPLIDORES",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "2002",
+    "is_header": true
+  },
+  {
+    "code": "20020103",
+    "name": "SUPLIDOR RD$",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "200201",
+    "is_header": false
+  },
+  {
+    "code": "20020102",
+    "name": "SUPLIDORES INTERNACIONALES",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "200201",
+    "is_header": true
+  },
+  {
+    "code": "2002010201",
+    "name": "SUPLIDOR US$",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "20020102",
+    "is_header": true
+  },
+  {
+    "code": "2002010299",
+    "name": "PRIMA  EN SUPLIDORES EN US$",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "20020102",
+    "is_header": false
+  },
+  {
+    "code": "200202",
+    "name": "CUENTAS POR PAGAR ACCIONISTAS",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "2002",
+    "is_header": false
+  },
+  {
+    "code": "200203",
+    "name": "CUENTAS POR PAGAR RELACIONADAS",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "2002",
+    "is_header": true
+  },
+  {
+    "code": "20020301",
+    "name": "CUENTAS POR PAGAR RELACIONADASS EN RD$",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "200203",
+    "is_header": false
+  },
+  {
+    "code": "200204",
+    "name": "OTROS PASIVOS",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "2002",
+    "is_header": true
+  },
+  {
+    "code": "20020401",
+    "name": "TARJETAS DE CREDITOS EN RD$",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "200204",
+    "is_header": true
+  },
+  {
+    "code": "20020402",
+    "name": "TARJETAS DE CREDITOS EN US$",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "200204",
+    "is_header": true
+  },
+  {
+    "code": "2002040201",
+    "name": "TARJETAS DE CREDITOS EN RD$",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "20020402",
+    "is_header": false
+  },
+  {
+    "code": "2002040202",
+    "name": "PRIMA TARJETAS DE CREDITOS EN US$",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "20020402",
+    "is_header": false
+  },
+  {
+    "code": "20020403",
+    "name": "ANTICIPOS CLIENTES EN RD$",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "200204",
+    "is_header": true
+  },
+  {
+    "code": "2002040301",
+    "name": "ANTICIPOS CLIENTES EN RD$",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "20020403",
+    "is_header": false
+  },
+  {
+    "code": "20020404",
+    "name": "ANTICIPOS CLIENTES EN US$",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "200204",
+    "is_header": true
+  },
+  {
+    "code": "2002040401",
+    "name": "ANTICIPOS CLIENTES EN US$",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "20020404",
+    "is_header": false
+  },
+  {
+    "code": "2002040402",
+    "name": "PRIMA ANTICIPOS CLIENTES EN US$",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "20020404",
+    "is_header": false
+  },
+  {
+    "code": "20020405",
+    "name": "OTROS CREDITOS DIFERIDOS",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "200204",
+    "is_header": false
+  },
+  {
+    "code": "20020406",
+    "name": "DIVIDENDOS DECLARADOS POR PAGAR",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "200204",
+    "is_header": false
+  },
+  {
+    "code": "20020499",
+    "name": "OTRAS CUENTAS POR PAGAR MISCELANEAS",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "200204",
+    "is_header": false
+  },
+  {
+    "code": "2003",
+    "name": "ACUMULACIONES Y PROVISIONES POR PAGAR",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "20",
+    "is_header": true
+  },
+  {
+    "code": "200301",
+    "name": "ACUMULACIONES POR PAGAR FUNCIONARIOS Y EMPLEADOS",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "2003",
+    "is_header": true
+  },
+  {
+    "code": "20030101",
+    "name": "NOMINA POR PAGAR",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "200301",
+    "is_header": true
+  },
+  {
+    "code": "20030102",
+    "name": "BONIFICACION POR PAGAR",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "200301",
+    "is_header": false
+  },
+  {
+    "code": "20030103",
+    "name": "SALARIO DE NAVIDAD POR PAGAR",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "200301",
+    "is_header": false
+  },
+  {
+    "code": "20030104",
+    "name": "PROVISION PARA PREAVISO Y CESANTIA",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "200301",
+    "is_header": false
+  },
+  {
+    "code": "20030105",
+    "name": "PROVISION PARA VACACIONES",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "200301",
+    "is_header": false
+  },
+  {
+    "code": "20030106",
+    "name": "INCENTIVOS Y HORAS EXTRAS POR PAGAR",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "200301",
+    "is_header": false
+  },
+  {
+    "code": "20030199",
+    "name": "OTRAS ACUMULACIONES POR PAGAR EMPLEADOS",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "200301",
+    "is_header": false
+  },
+  {
+    "code": "200302",
+    "name": "CUENTAS POR PAGAR AL ESTADO DOMINICANO",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "2003",
+    "is_header": true
+  },
+  {
+    "code": "20030201",
+    "name": "TESORERIA DE LA SEGURIDAD SOCIAL POR PAGAR",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "200302",
+    "is_header": false
+  },
+  {
+    "code": "20030202",
+    "name": "ITBIS DE CLIENTES POR PAGAR (18%)",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "200302",
+    "is_header": false
+  },
+  {
+    "code": "20030203",
+    "name": "RETENCION A PERSONAS FISICAS (18%)",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "200302",
+    "is_header": false
+  },
+  {
+    "code": "20030204",
+    "name": "RETENCION DEL 30% DEL ITBIS",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "200302",
+    "is_header": false
+  },
+  {
+    "code": "20030205",
+    "name": "RETENCION DEL 100% DEL ITBIS",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "200302",
+    "is_header": false
+  },
+  {
+    "code": "20030206",
+    "name": "RETENCION DEL 75% DEL ITBIS",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "200302",
+    "is_header": false
+  },
+  {
+    "code": "20030207",
+    "name": "RETENCION I.S.R. EMPLEADOS",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "200302",
+    "is_header": false
+  },
+  {
+    "code": "20030208",
+    "name": "RETENCION ISR ALQUILERES (10%)",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "200302",
+    "is_header": false
+  },
+  {
+    "code": "20030209",
+    "name": "RETENCION ISR HONORARIOS (10%)",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "200302",
+    "is_header": false
+  },
+  {
+    "code": "20030210",
+    "name": "RETENCION ISR DIVIDENDOS PAGADOS (10%)",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "200302",
+    "is_header": false
+  },
+  {
+    "code": "20030211",
+    "name": "RETENCION ISR PREMIOS (10%)",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "200302",
+    "is_header": false
+  },
+  {
+    "code": "20030212",
+    "name": "RETENCION ISR INTERESES PAGADOS (10%)",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "200302",
+    "is_header": false
+  },
+  {
+    "code": "20030213",
+    "name": "RETENCION ISR REMESAS AL EXTERIOR (27%)",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "200302",
+    "is_header": false
+  },
+  {
+    "code": "20030214",
+    "name": "RETENCION ISR OTRAS RENTAS (10%)",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "200302",
+    "is_header": false
+  },
+  {
+    "code": "20030215",
+    "name": "RETENCION ISR OTRAS RETENCIONES (Rentas Presuntas) (2%)",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "200302",
+    "is_header": false
+  },
+  {
+    "code": "20030216",
+    "name": "IMPUESTO SOBRE RETRIBUCIONES COMPLEMENTARIAS",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "200302",
+    "is_header": false
+  },
+  {
+    "code": "20030217",
+    "name": "IMPUESTO SOBRE LA RENTA/ACTIVOS (27%/1%)",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "200302",
+    "is_header": false
+  },
+  {
+    "code": "20030218",
+    "name": "IMPUESTO DE FISCALIZACION POR PAGAR",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "200302",
+    "is_header": false
+  },
+  {
+    "code": "20030219",
+    "name": "IMPUESTO SOBRE LA RENTA DIFERIDO-PASIVO",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "200302",
+    "is_header": false
+  },
+  {
+    "code": "20030220",
+    "name": "INFOTEP",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "200302",
+    "is_header": false
+  },
+  {
+    "code": "20030221",
+    "name": "RETENCION ISR PAGO PROVEEDORES ESTATALES (5%)",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "200302",
+    "is_header": false
+  },
+  {
+    "code": "20030222",
+    "name": "RETENCION ISR OTRAS RETENCIONES (Servicios Tecnicos) (2%)",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "200302",
+    "is_header": false
+  },
+  {
+    "code": "20030299",
+    "name": "OTRAS RETENCIONES Y ACUMULACIONES POR PAGAR",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "200302",
+    "is_header": false
+  },
+  {
+    "code": "200399",
+    "name": "OTRAS PARTIDAS POR LIQUIDAR",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "2003",
+    "is_header": true
+  },
+  {
+    "code": "20039901",
+    "name": "CAJA CHICA POR PAGAR (CAJA)",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "200399",
+    "is_header": false
+  },
+  {
+    "code": "20039902",
+    "name": "CAJA CHICA POR PAGAR (CKS)",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "200399",
+    "is_header": false
+  },
+  {
+    "code": "20039999",
+    "name": "OTROS PASIVOS",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "200399",
+    "is_header": false
+  },
+  {
+    "code": "21",
+    "name": "PASIVOS A LARGO PLAZO",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "2",
+    "is_header": true
+  },
+  {
+    "code": "2101",
+    "name": "DOCUMENTOS POR PAGAR A LARGO PLAZO",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "21",
+    "is_header": true
+  },
+  {
+    "code": "210101",
+    "name": "DOCUMENTOS POR PAGAR A LARGO PLAZO RD$",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "2101",
+    "is_header": false
+  },
+  {
+    "code": "2102",
+    "name": "PRESTAMOS POR PAGAR A LARGO PLAZO",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "21",
+    "is_header": true
+  },
+  {
+    "code": "210299",
+    "name": "OTROS PRESTAMOS POR PAGAR",
+    "classification": "liability",
+    "normal_balance": "credit",
+    "parent_code": "2102",
+    "is_header": false
+  },
+  {
+    "code": "3",
+    "name": "CAPITAL",
+    "classification": "equity",
+    "normal_balance": "credit",
+    "parent_code": "",
+    "is_header": true
+  },
+  {
+    "code": "30",
+    "name": "CAPITAL SOCIAL SUSCRITO Y PAGADO",
+    "classification": "equity",
+    "normal_balance": "credit",
+    "parent_code": "3",
+    "is_header": false
+  },
+  {
+    "code": "31",
+    "name": "CAPITAL ADICIONAL PAGADO",
+    "classification": "equity",
+    "normal_balance": "credit",
+    "parent_code": "3",
+    "is_header": false
+  },
+  {
+    "code": "32",
+    "name": "RESERVAS",
+    "classification": "equity",
+    "normal_balance": "credit",
+    "parent_code": "3",
+    "is_header": true
+  },
+  {
+    "code": "3201",
+    "name": "RESERVA LEGAL",
+    "classification": "equity",
+    "normal_balance": "credit",
+    "parent_code": "32",
+    "is_header": false
+  },
+  {
+    "code": "3202",
+    "name": "RESERVA PARA CONTINGENCIA",
+    "classification": "equity",
+    "normal_balance": "credit",
+    "parent_code": "32",
+    "is_header": false
+  },
+  {
+    "code": "3203",
+    "name": "OTRAS RESERVAS",
+    "classification": "equity",
+    "normal_balance": "credit",
+    "parent_code": "32",
+    "is_header": false
+  },
+  {
+    "code": "33",
+    "name": "RESULTADO",
+    "classification": "equity",
+    "normal_balance": "credit",
+    "parent_code": "3",
+    "is_header": true
+  },
+  {
+    "code": "3301",
+    "name": "RESULTADO ACUMULADO",
+    "classification": "equity",
+    "normal_balance": "credit",
+    "parent_code": "33",
+    "is_header": false
+  },
+  {
+    "code": "3302",
+    "name": "RESULTADO DEL PERIODO",
+    "classification": "equity",
+    "normal_balance": "credit",
+    "parent_code": "33",
+    "is_header": false
+  },
+  {
+    "code": "3303",
+    "name": "AJUSTES A RESULTADOS DE AÑOS ANTERIORES",
+    "classification": "equity",
+    "normal_balance": "credit",
+    "parent_code": "33",
+    "is_header": false
+  },
+  {
+    "code": "3399",
+    "name": "RESUMEN DE GANANCIAS Y PERDIDAS",
+    "classification": "equity",
+    "normal_balance": "credit",
+    "parent_code": "33",
+    "is_header": false
+  },
+  {
+    "code": "34",
+    "name": "SUPERAVIT",
+    "classification": "equity",
+    "normal_balance": "credit",
+    "parent_code": "3",
+    "is_header": true
+  },
+  {
+    "code": "3401",
+    "name": "SUPERAVIT POR REVALUACION DE ACTIVOS",
+    "classification": "equity",
+    "normal_balance": "credit",
+    "parent_code": "34",
+    "is_header": false
+  },
+  {
+    "code": "4",
+    "name": "INGRESOS",
+    "classification": "income",
+    "normal_balance": "credit",
+    "parent_code": "",
+    "is_header": true
+  },
+  {
+    "code": "40",
+    "name": "INGRESOS EN OPERACIONES",
+    "classification": "income",
+    "normal_balance": "credit",
+    "parent_code": "4",
+    "is_header": true
+  },
+  {
+    "code": "4001",
+    "name": "INGRESOS POR VENTAS",
+    "classification": "income",
+    "normal_balance": "credit",
+    "parent_code": "40",
+    "is_header": false
+  },
+  {
+    "code": "4002",
+    "name": "INGRESOS POR COMISION",
+    "classification": "income",
+    "normal_balance": "credit",
+    "parent_code": "40",
+    "is_header": false
+  },
+  {
+    "code": "4099",
+    "name": "OTROS INGRESOS OPERACIONALES",
+    "classification": "income",
+    "normal_balance": "credit",
+    "parent_code": "40",
+    "is_header": false
+  },
+  {
+    "code": "41",
+    "name": "DEDUCCIONES",
+    "classification": "income",
+    "normal_balance": "credit",
+    "parent_code": "4",
+    "is_header": true
+  },
+  {
+    "code": "4101",
+    "name": "DESCUENTOS SOBRE VENTAS",
+    "classification": "income",
+    "normal_balance": "credit",
+    "parent_code": "41",
+    "is_header": true
+  },
+  {
+    "code": "410101",
+    "name": "DESCUENTOS SOBRE VENTAS",
+    "classification": "income",
+    "normal_balance": "credit",
+    "parent_code": "4101",
+    "is_header": false
+  },
+  {
+    "code": "4102",
+    "name": "DEVOLUCIONES SOBRE VENTAS",
+    "classification": "income",
+    "normal_balance": "credit",
+    "parent_code": "41",
+    "is_header": true
+  },
+  {
+    "code": "410201",
+    "name": "DEVOLUCIONES SOBRE VENTAS",
+    "classification": "income",
+    "normal_balance": "credit",
+    "parent_code": "4102",
+    "is_header": false
+  },
+  {
+    "code": "47",
+    "name": "INGRESOS FINANCIEROS",
+    "classification": "income",
+    "normal_balance": "credit",
+    "parent_code": "4",
+    "is_header": true
+  },
+  {
+    "code": "4701",
+    "name": "DIVIDENDOS GANADOS EN OTRAS COMPAÑIAS",
+    "classification": "income",
+    "normal_balance": "credit",
+    "parent_code": "47",
+    "is_header": false
+  },
+  {
+    "code": "4702",
+    "name": "PARTICIPACION PATRIMONIAL EN SUBCIDIARIAS",
+    "classification": "income",
+    "normal_balance": "credit",
+    "parent_code": "47",
+    "is_header": false
+  },
+  {
+    "code": "4703",
+    "name": "INTERESES GANADOS EN CERTIFICADOS FINANCIEROS",
+    "classification": "income",
+    "normal_balance": "credit",
+    "parent_code": "47",
+    "is_header": false
+  },
+  {
+    "code": "4704",
+    "name": "INTERESES GANADOS EN BONOS",
+    "classification": "income",
+    "normal_balance": "credit",
+    "parent_code": "47",
+    "is_header": false
+  },
+  {
+    "code": "4705",
+    "name": "INTERESES GANADOS EN CUENTAS CORRIENTE",
+    "classification": "income",
+    "normal_balance": "credit",
+    "parent_code": "47",
+    "is_header": false
+  },
+  {
+    "code": "4706",
+    "name": "INTERESES GANADOS EN CUENTAS DE AHORROS",
+    "classification": "income",
+    "normal_balance": "credit",
+    "parent_code": "47",
+    "is_header": false
+  },
+  {
+    "code": "4707",
+    "name": "INGRESOS POR VENTA DE INVERSIONES",
+    "classification": "income",
+    "normal_balance": "credit",
+    "parent_code": "47",
+    "is_header": false
+  },
+  {
+    "code": "48",
+    "name": "GANANCIA EN VENTA O INTERCAMBIO DE ACTIVOS FIJOS",
+    "classification": "income",
+    "normal_balance": "credit",
+    "parent_code": "4",
+    "is_header": true
+  },
+  {
+    "code": "4801",
+    "name": "GANANCIA EN VENTA O INTERCAMBIO DE TERRENO",
+    "classification": "income",
+    "normal_balance": "credit",
+    "parent_code": "48",
+    "is_header": false
+  },
+  {
+    "code": "4802",
+    "name": "GANANCIA EN VENTA O INTERCAMBIO DE EDIFICACIONES",
+    "classification": "income",
+    "normal_balance": "credit",
+    "parent_code": "48",
+    "is_header": false
+  },
+  {
+    "code": "4803",
+    "name": "GANANCIA EN VENTA O INTERCAMBIO DE MOBILIARIO Y EQUIPOS DE OFICINA",
+    "classification": "income",
+    "normal_balance": "credit",
+    "parent_code": "48",
+    "is_header": false
+  },
+  {
+    "code": "4804",
+    "name": "GANANCIA EN VENTA O INTERCAMBIO EQUIPOS DE COMPUTOS Y TELECOMUNICACIONES",
+    "classification": "income",
+    "normal_balance": "credit",
+    "parent_code": "48",
+    "is_header": false
+  },
+  {
+    "code": "4805",
+    "name": "GANANCIA EN VENTA O INTERCAMBIO EQUIPOS DE TRANSPORTE",
+    "classification": "income",
+    "normal_balance": "credit",
+    "parent_code": "48",
+    "is_header": false
+  },
+  {
+    "code": "4806",
+    "name": "GANANCIA EN VENTA O INTERCAMBIO VENTA DE MAQUINARIAS Y EQUIPOS",
+    "classification": "income",
+    "normal_balance": "credit",
+    "parent_code": "48",
+    "is_header": false
+  },
+  {
+    "code": "4807",
+    "name": "GANANCIA EN VENTA O INTERCAMBIO VENTA DE OTROS ACTIVOS FIJOS",
+    "classification": "income",
+    "normal_balance": "credit",
+    "parent_code": "48",
+    "is_header": false
+  },
+  {
+    "code": "49",
+    "name": "INGRESOS EXTRAORDINARIOS",
+    "classification": "income",
+    "normal_balance": "credit",
+    "parent_code": "4",
+    "is_header": true
+  },
+  {
+    "code": "4901",
+    "name": "GANANCIA EN AJUSTE POR TIPO DE CAMBIO",
+    "classification": "income",
+    "normal_balance": "credit",
+    "parent_code": "49",
+    "is_header": false
+  },
+  {
+    "code": "4902",
+    "name": "INGRESOS POR RECUPERACION CUENTAS MALAS",
+    "classification": "income",
+    "normal_balance": "credit",
+    "parent_code": "49",
+    "is_header": false
+  },
+  {
+    "code": "4903",
+    "name": "INGRESOS POR INDEMNIZACION DE SEGUROS",
+    "classification": "income",
+    "normal_balance": "credit",
+    "parent_code": "49",
+    "is_header": false
+  },
+  {
+    "code": "4904",
+    "name": "INGRESOS DE AÑOS ANTERIORES",
+    "classification": "income",
+    "normal_balance": "credit",
+    "parent_code": "49",
+    "is_header": false
+  },
+  {
+    "code": "4999",
+    "name": "OTROS INGRESOS",
+    "classification": "income",
+    "normal_balance": "credit",
+    "parent_code": "49",
+    "is_header": false
+  },
+  {
+    "code": "5",
+    "name": "COSTOS",
+    "classification": "cost",
+    "normal_balance": "debit",
+    "parent_code": "",
+    "is_header": true
+  },
+  {
+    "code": "50",
+    "name": "COSTOS DE VENTAS",
+    "classification": "cost",
+    "normal_balance": "debit",
+    "parent_code": "5",
+    "is_header": true
+  },
+  {
+    "code": "5001",
+    "name": "COSTOS DIRECTOS",
+    "classification": "cost",
+    "normal_balance": "debit",
+    "parent_code": "50",
+    "is_header": true
+  },
+  {
+    "code": "500101",
+    "name": "COSTO DE MERCANCIAS",
+    "classification": "cost",
+    "normal_balance": "debit",
+    "parent_code": "5001",
+    "is_header": false
+  },
+  {
+    "code": "5002",
+    "name": "DESCUENTOS SOBRE COMPRAS",
+    "classification": "cost",
+    "normal_balance": "debit",
+    "parent_code": "50",
+    "is_header": false
+  },
+  {
+    "code": "5003",
+    "name": "MATERIAL GASTABLE",
+    "classification": "cost",
+    "normal_balance": "debit",
+    "parent_code": "50",
+    "is_header": false
+  },
+  {
+    "code": "6",
+    "name": "GASTOS",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "",
+    "is_header": true
+  },
+  {
+    "code": "60",
+    "name": "GASTOS GENERALES Y ADMINISTRATIVOS",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6",
+    "is_header": true
+  },
+  {
+    "code": "6001",
+    "name": "GASTOS FUNCIONARIOS Y EMPLEADOS",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "60",
+    "is_header": true
+  },
+  {
+    "code": "600101",
+    "name": "SUELDOS Y SALARIOS",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6001",
+    "is_header": false
+  },
+  {
+    "code": "600102",
+    "name": "COMISIONES A EMPLEADOS",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6001",
+    "is_header": false
+  },
+  {
+    "code": "600103",
+    "name": "INCENTIVOS",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6001",
+    "is_header": false
+  },
+  {
+    "code": "600104",
+    "name": "BONIFICACION",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6001",
+    "is_header": false
+  },
+  {
+    "code": "600105",
+    "name": "SALARIO DE NAVIDAD",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6001",
+    "is_header": false
+  },
+  {
+    "code": "600106",
+    "name": "VACACIONES",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6001",
+    "is_header": false
+  },
+  {
+    "code": "600107",
+    "name": "PREAVISO Y CESANTIA",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6001",
+    "is_header": false
+  },
+  {
+    "code": "600108",
+    "name": "COMPENSACION USO DE VEHICULOS",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6001",
+    "is_header": false
+  },
+  {
+    "code": "600109",
+    "name": "ENTRENAMIENTO Y CAPACITACION",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6001",
+    "is_header": false
+  },
+  {
+    "code": "600110",
+    "name": "INFOTEP",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6001",
+    "is_header": false
+  },
+  {
+    "code": "600111",
+    "name": "APORTE PLAN BASICO DE SALUD (SFS)",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6001",
+    "is_header": false
+  },
+  {
+    "code": "600112",
+    "name": "APORTE PLAN DE PENSIONES (AFP)",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6001",
+    "is_header": false
+  },
+  {
+    "code": "600113",
+    "name": "APORTE RIESGOS LABORALES (SRL)",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6001",
+    "is_header": false
+  },
+  {
+    "code": "600114",
+    "name": "SEGURO MEDICO Y DE VIDA PRIVADO",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6001",
+    "is_header": false
+  },
+  {
+    "code": "600115",
+    "name": "UNIFORME",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6001",
+    "is_header": false
+  },
+  {
+    "code": "600116",
+    "name": "DIETAS Y VIATICOS A EMPLEADOS",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6001",
+    "is_header": false
+  },
+  {
+    "code": "600117",
+    "name": "ACTIVIDADES SOCIALES EMPLEADOS",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6001",
+    "is_header": false
+  },
+  {
+    "code": "600118",
+    "name": "GASTO DE RETRIBUCIONES COMPLEMENTARIAS",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6001",
+    "is_header": false
+  },
+  {
+    "code": "600119",
+    "name": "IMPUESTO DE RETRIBUCIONES COMPLEMENTARIAS",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6001",
+    "is_header": false
+  },
+  {
+    "code": "600120",
+    "name": "PRIMEROS AUXILIOS AL PERSONAL",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6001",
+    "is_header": false
+  },
+  {
+    "code": "600121",
+    "name": "HORAS EXTRAS",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6001",
+    "is_header": false
+  },
+  {
+    "code": "600199",
+    "name": "OTROS BENEFICIOS EMPLEADOS",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6001",
+    "is_header": false
+  },
+  {
+    "code": "6002",
+    "name": "OTROS DE VENTAS GENERALES Y ADMINISTRATIVOS",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "60",
+    "is_header": true
+  },
+  {
+    "code": "600201",
+    "name": "AGUA, LUZ Y BASURA",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6002",
+    "is_header": false
+  },
+  {
+    "code": "600202",
+    "name": "TELECOMUNICACIONES",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6002",
+    "is_header": false
+  },
+  {
+    "code": "600203",
+    "name": "GASTOS DE DEPRECIACION Y AMORTIZACIONES",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "60",
+    "is_header": true
+  },
+  {
+    "code": "60020301",
+    "name": "GASTOS DE DEPRECIACION EDIFICACIONES",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "600203",
+    "is_header": false
+  },
+  {
+    "code": "60020302",
+    "name": "GASTOS DE DEPRECIACION MOBILIARIO Y EQUIPOS DE OFICINA",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "600203",
+    "is_header": false
+  },
+  {
+    "code": "60020303",
+    "name": "GASTOS DE DEPRECIACION EQUIPOS DE COMPUTOS Y TELECOMUNICACIONES",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "600203",
+    "is_header": false
+  },
+  {
+    "code": "60020304",
+    "name": "GASTOS DE DEPRECIACION EQUIPOS DE TRANSPORTE",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "600203",
+    "is_header": false
+  },
+  {
+    "code": "60020305",
+    "name": "GASTO DE DEPRECIACION MAQUINARIAS Y EQUIPOS",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "600203",
+    "is_header": false
+  },
+  {
+    "code": "60020306",
+    "name": "GASTOS DE DEPRECIACION OTROS ACTIVOS",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "600203",
+    "is_header": false
+  },
+  {
+    "code": "60020307",
+    "name": "AMORTIZACION MEJORAS EN PROPIEDAD ARRENDADA",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "600203",
+    "is_header": false
+  },
+  {
+    "code": "60020308",
+    "name": "AMORTIZACION GASTOS DE ORGANIZACION Y CONSTITUCION",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "600203",
+    "is_header": false
+  },
+  {
+    "code": "60020309",
+    "name": "AMORTIZACION LICENCIAS Y SOFTWARES",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "600203",
+    "is_header": false
+  },
+  {
+    "code": "600204",
+    "name": "SEGUROS GENERALES",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6002",
+    "is_header": false
+  },
+  {
+    "code": "600205",
+    "name": "ALQUILERES",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6002",
+    "is_header": true
+  },
+  {
+    "code": "60020501",
+    "name": "ALQUILER DE LOCALES",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "600205",
+    "is_header": false
+  },
+  {
+    "code": "60020502",
+    "name": "ALQUILER DE EQUIPOS",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "600205",
+    "is_header": false
+  },
+  {
+    "code": "60020503",
+    "name": "ALQUILER DE VEHICULOS",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "600205",
+    "is_header": false
+  },
+  {
+    "code": "60020504",
+    "name": "ALQUILERES GENERALES",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "600205",
+    "is_header": false
+  },
+  {
+    "code": "600206",
+    "name": "HONORARIOS POR SERVICIOS",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6002",
+    "is_header": true
+  },
+  {
+    "code": "60020601",
+    "name": "HONORARIOS POR SERVICIOS PROFESIONALES SOCIEDADES",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "600206",
+    "is_header": false
+  },
+  {
+    "code": "60020602",
+    "name": "HONORARIOS POR SERVICIOS PROFESIONALES PERSONAS FISICAS",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "600206",
+    "is_header": false
+  },
+  {
+    "code": "600207",
+    "name": "TRANSPORTE Y ACARREO",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6002",
+    "is_header": false
+  },
+  {
+    "code": "600208",
+    "name": "COMBUSTIBLE Y LUBRICANTES VEHICULOS",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6002",
+    "is_header": false
+  },
+  {
+    "code": "600209",
+    "name": "COMBUSTIBLE PLANTA ELECTRICA",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6002",
+    "is_header": false
+  },
+  {
+    "code": "600210",
+    "name": "ESTADIA HOTELES",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6002",
+    "is_header": false
+  },
+  {
+    "code": "600211",
+    "name": "GASTOS POR CUENTAS MALAS",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6002",
+    "is_header": false
+  },
+  {
+    "code": "600212",
+    "name": "REPARACIONES DE EDIFICIO",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6002",
+    "is_header": false
+  },
+  {
+    "code": "600213",
+    "name": "REPARACIONES DE ACTIVOS FIJOS CATEGORIA 2 Y 3",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6002",
+    "is_header": false
+  },
+  {
+    "code": "600214",
+    "name": "MANTENIMIENTO DE ACTIVOS FIJOS",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6002",
+    "is_header": true
+  },
+  {
+    "code": "600215",
+    "name": "PROMOCIONES",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6002",
+    "is_header": false
+  },
+  {
+    "code": "600216",
+    "name": "PUBLICIDAD",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6002",
+    "is_header": false
+  },
+  {
+    "code": "600217",
+    "name": "VIAJES Y REPRESENTACION",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6002",
+    "is_header": false
+  },
+  {
+    "code": "600218",
+    "name": "PATROCINIO Y APORTES",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6002",
+    "is_header": false
+  },
+  {
+    "code": "600219",
+    "name": "MANTENIMIENTO DE SUITE (WED)",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6002",
+    "is_header": false
+  },
+  {
+    "code": "600220",
+    "name": "MATERIAL GASTABLE Y PAPELERIA",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6002",
+    "is_header": false
+  },
+  {
+    "code": "600221",
+    "name": "MATERIAL DE LIMPIEZA",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6002",
+    "is_header": false
+  },
+  {
+    "code": "600222",
+    "name": "ATENCIONES A CLIENTES",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6002",
+    "is_header": false
+  },
+  {
+    "code": "600223",
+    "name": "GASTOS DE CORREO Y ENVIOS",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6002",
+    "is_header": false
+  },
+  {
+    "code": "600224",
+    "name": "GASTOS LEGALES",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6002",
+    "is_header": false
+  },
+  {
+    "code": "600225",
+    "name": "SEGURIDAD ELECTRONICA",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6002",
+    "is_header": false
+  },
+  {
+    "code": "600226",
+    "name": "GUARDIANES Y VIGILANCIA",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6002",
+    "is_header": false
+  },
+  {
+    "code": "600227",
+    "name": "FUMIGACION Y CONTROL DE PLAGAS",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6002",
+    "is_header": false
+  },
+  {
+    "code": "600228",
+    "name": "SUSCRIPCIONES Y MEMBRESIAS",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6002",
+    "is_header": false
+  },
+  {
+    "code": "600229",
+    "name": "DONACIONES",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6002",
+    "is_header": false
+  },
+  {
+    "code": "600230",
+    "name": "GASTOS DE REPRESENTACION",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6002",
+    "is_header": false
+  },
+  {
+    "code": "600231",
+    "name": "PERDIDA POR OBSOLESCENCIA DE INVENTARIOS",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6002",
+    "is_header": false
+  },
+  {
+    "code": "600232",
+    "name": "PERDIDA EN VENTA DE INVERSIONES",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6002",
+    "is_header": false
+  },
+  {
+    "code": "600233",
+    "name": "PERDIDA EN VENTA O INTERCAMBIO DE ACTIVOS FIJOS",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6002",
+    "is_header": true
+  },
+  {
+    "code": "60023301",
+    "name": "PERDIDA EN VENTA O INTERCAMBIO DE TERRENO",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6002",
+    "is_header": false
+  },
+  {
+    "code": "60023302",
+    "name": "PERDIDA EN VENTA O INTERCAMBIO DE EDIFICACIONES",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6002",
+    "is_header": false
+  },
+  {
+    "code": "60023303",
+    "name": "PERDIDA EN VENTA O INTERCAMBIO DE MOBILIARIO Y EQUIPOS DE OFICINA",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "600233",
+    "is_header": false
+  },
+  {
+    "code": "60023304",
+    "name": "PERDIDA EN VENTA O INTERCAMBIO DE MAQUINARIAS Y EQUIPOS",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "600233",
+    "is_header": false
+  },
+  {
+    "code": "60023305",
+    "name": "PERDIDA EN VENTA O INTERCAMBIO DE OTROS ACTIVOS FIJOS",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "600233",
+    "is_header": false
+  },
+  {
+    "code": "600234",
+    "name": "PERDIDA EN PARTICIPACION PATRIMONIAL EN SUBSIDIARIAS",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6002",
+    "is_header": false
+  },
+  {
+    "code": "600235",
+    "name": "PERDIDA EN INDEMNIZACION DE SEGUROS",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6002",
+    "is_header": false
+  },
+  {
+    "code": "600236",
+    "name": "CONSULTA DE DATOS E INFORMACION CREDITICIA",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6002",
+    "is_header": false
+  },
+  {
+    "code": "600237",
+    "name": "GASTO DE PLACAS, PATENTES Y REVISTAS VEHICULOS",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6002",
+    "is_header": false
+  },
+  {
+    "code": "600298",
+    "name": "GASTOS NO DEDUCIBLE ISR",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6002",
+    "is_header": true
+  },
+  {
+    "code": "60029801",
+    "name": "IMPUESTO DE FISCALIZACION DE LA DGII",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "600298",
+    "is_header": false
+  },
+  {
+    "code": "60029802",
+    "name": "RETENCIONES DE IMPUESTO SOBRE LA RENTAS ASUMIDAS",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "600298",
+    "is_header": false
+  },
+  {
+    "code": "60029803",
+    "name": "PENALIDADES, MORA E INTERES INDEMNIZATORIOS",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "600298",
+    "is_header": false
+  },
+  {
+    "code": "60029804",
+    "name": "GASTOS SIN COMPROBANTES NO ADMITIDOS",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "600298",
+    "is_header": false
+  },
+  {
+    "code": "60029805",
+    "name": "GASTOS DE AÑOS ANTERIORES NO ADMITIDOS",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "600298",
+    "is_header": false
+  },
+  {
+    "code": "60029899",
+    "name": "OTROS GASTOS NO DEDUCIBLE ISR",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "600298",
+    "is_header": false
+  },
+  {
+    "code": "600299",
+    "name": "OTROS GASTOS DE VENTAS GENERALES Y ADMINISTRATIVOS",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6002",
+    "is_header": false
+  },
+  {
+    "code": "61",
+    "name": "GASTOS FINANCIEROS",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6",
+    "is_header": true
+  },
+  {
+    "code": "6101",
+    "name": "CARGOS Y COMISIONES BANCARIAS",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "61",
+    "is_header": false
+  },
+  {
+    "code": "6102",
+    "name": "CARGOS Y COMISIONES TARJETAS DE CREDITOS",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "61",
+    "is_header": false
+  },
+  {
+    "code": "6103",
+    "name": "PERDIDA EN AJUSTE POR TIPO DE CAMBIO",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "61",
+    "is_header": false
+  },
+  {
+    "code": "6104",
+    "name": "INTERESES SOBRE PRESTAMOS BANCARIOS",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "61",
+    "is_header": false
+  },
+  {
+    "code": "6105",
+    "name": "INTERESES SOBRE PRESTAMOS PARTICULARES",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "61",
+    "is_header": false
+  },
+  {
+    "code": "6106",
+    "name": "IMPUESTO 0.15% SOBRE CHEQUES",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "61",
+    "is_header": false
+  },
+  {
+    "code": "62",
+    "name": "IMPUESTOS SOBRE LA RENTA",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "6",
+    "is_header": true
+  },
+  {
+    "code": "6201",
+    "name": "IMPUESTOS SOBRE LA RENTA/ACTIVOS DEL PERIODO",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "62",
+    "is_header": false
+  },
+  {
+    "code": "6202",
+    "name": "IMPUESTOS SOBRE LA RENTA DIFERIDOS",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "62",
+    "is_header": false
+  },
+  {
+    "code": "6203",
+    "name": "IMPUESTOS SOBRE LA RENTA/ACTIVOS DE AÑOS ANTERIORES",
+    "classification": "expense",
+    "normal_balance": "debit",
+    "parent_code": "62",
+    "is_header": false
+  }
+]
