@@ -140,6 +140,7 @@ export default async function InventarioPage({
 
   return (
     <InventarioVista
+      key={empresa.id}
       empresaId={empresa.id}
       moneda={moneda}
       articulos={articulos}

@@ -81,6 +81,7 @@ function descargarBase64(archivo: string, base64: string) {
 }
 
 export interface FinanzasVistaProps {
+  empresaId: string;
   empresaNombre: string;
   moneda: Moneda;
   rangoInicial: RangoFechas;
@@ -93,7 +94,11 @@ export interface FinanzasVistaProps {
   resultadoFlujoInicial: number;
 }
 
-export function FinanzasVista({
+export function FinanzasVista(props: FinanzasVistaProps) {
+  return <FinanzasVistaContenido key={props.empresaId} {...props} />;
+}
+
+function FinanzasVistaContenido({
   empresaNombre,
   moneda,
   rangoInicial,

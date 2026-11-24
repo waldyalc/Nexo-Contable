@@ -106,6 +106,7 @@ export default async function DocumentosPage({
 
   return (
     <DocumentosVista
+      key={empresa.id}
       empresaId={empresa.id}
       documentos={documentos}
       opcionesEntidades={opcionesEntidades}

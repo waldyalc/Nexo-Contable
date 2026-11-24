@@ -249,6 +249,7 @@ export default async function ContabilidadPage() {
     <>
       {encabezado}
       <ContabilidadVista
+        key={empresa.id}
         empresaNombre={empresa.nombreComercial}
         moneda={moneda}
         cuentas={cuentas}

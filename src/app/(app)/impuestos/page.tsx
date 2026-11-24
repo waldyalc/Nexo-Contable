@@ -81,6 +81,7 @@ export default async function ImpuestosPage({
 
   return (
     <ImpuestosVista
+      key={empresa.id}
       empresaId={empresa.id}
       periodo={periodo}
       reporte606={reporte.filas606}

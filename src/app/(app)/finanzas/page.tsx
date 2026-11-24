@@ -187,6 +187,8 @@ export default async function FinanzasPage() {
         </p>
       ) : null}
       <FinanzasVista
+        key={empresa.id}
+        empresaId={empresa.id}
         empresaNombre={empresa.nombreComercial}
         moneda={moneda}
         rangoInicial={rangoInicial}

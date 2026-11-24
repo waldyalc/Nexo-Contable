@@ -209,6 +209,7 @@ export default async function BancosPage({
 
   return (
     <BancosVista
+      key={empresa.id}
       empresaId={empresa.id}
       moneda={moneda}
       cuentas={cuentas}

@@ -113,6 +113,7 @@ export default async function NominaPage() {
 
   return (
     <NominaVista
+      key={empresa.id}
       empresaId={empresa.id}
       moneda={moneda}
       empleados={empleados}

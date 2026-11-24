@@ -70,6 +70,25 @@ export interface MayorBalanzaTabProps {
 }
 
 export function MayorBalanzaTab({ cuentas, moneda }: MayorBalanzaTabProps) {
+  const ambitoCuentas = useMemo(
+    () =>
+      cuentas
+        .map((cuenta) => cuenta.id)
+        .sort()
+        .join("|") || "sin-cuentas",
+    [cuentas],
+  );
+
+  return (
+    <MayorBalanzaContenido
+      key={ambitoCuentas}
+      cuentas={cuentas}
+      moneda={moneda}
+    />
+  );
+}
+
+function MayorBalanzaContenido({ cuentas, moneda }: MayorBalanzaTabProps) {
   const [vista, setVista] = useState<"mayor" | "balanza">("mayor");
   const [cuentaId, setCuentaId] = useState("");
   const [rango, setRango] = useState<RangoFechas>(rangoInicial);
