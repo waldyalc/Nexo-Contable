@@ -26,7 +26,7 @@ export function Topbar({ contexto, onAbrirMenu, onAbrirPaleta }: TopbarProps) {
   const migas = migasParaRuta(pathname);
 
   return (
-    <header className="sticky top-0 z-30 flex h-[68px] shrink-0 items-center justify-between gap-3 border-b border-border bg-card/85 px-4 backdrop-blur-md lg:px-6">
+    <header className="nexo-shell-topbar sticky top-0 z-30 flex h-[68px] shrink-0 items-center justify-between gap-3 border-b border-border bg-card/85 px-4 backdrop-blur-md lg:px-6 print:hidden">
       <div className="flex min-w-0 items-center gap-2">
         <Button
           type="button"

@@ -107,3 +107,93 @@ h3,
   font-family: var(--font-display);
   letter-spacing: -0.03em;
 }
+
+@media print {
+  @page {
+    margin: 12mm;
+  }
+
+  :root,
+  .dark {
+    color-scheme: light;
+    --background: #ffffff;
+    --foreground: #172a25;
+    --card: #ffffff;
+    --card-foreground: #172a25;
+    --popover: #ffffff;
+    --popover-foreground: #172a25;
+    --secondary: #f1f5f2;
+    --secondary-foreground: #176b53;
+    --muted: #f4f6f4;
+    --muted-foreground: #66736d;
+    --accent: #f1f5f2;
+    --accent-foreground: #176b53;
+    --border: #d9e1dc;
+    --input: #d9e1dc;
+    --shadow-card: none;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+    color: #172a25 !important;
+  }
+
+  *,
+  *::before,
+  *::after {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  .nexo-shell {
+    display: block !important;
+    min-height: auto !important;
+    background: #ffffff !important;
+  }
+
+  .nexo-shell-navegacion,
+  .nexo-shell-topbar {
+    display: none !important;
+  }
+
+  .nexo-shell-contenido,
+  .nexo-shell-main {
+    display: block !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  main button,
+  main input,
+  main select,
+  main textarea {
+    display: none !important;
+  }
+
+  main div[class*="border-t"][class*="px-4"][class*="py-2"]:has(input),
+  main div[class*="border-t"][class*="px-4"][class*="py-2"]:has(button),
+  main div[class*="border-t"][class*="px-4"][class*="py-2"]:has(select) {
+    display: none !important;
+  }
+
+  main div:has(> button):not(:has(h1, h2, h3, p, table, ul)) {
+    display: none !important;
+  }
+
+  main table {
+    width: 100% !important;
+    border-collapse: collapse;
+  }
+
+  main tr {
+    break-inside: avoid;
+  }
+
+  main a {
+    color: inherit !important;
+    text-decoration: none !important;
+  }
+}

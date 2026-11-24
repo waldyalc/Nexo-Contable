@@ -21,20 +21,22 @@ export function AppShell({ contexto, children }: AppShellProps) {
   const [paletaAbierta, setPaletaAbierta] = useState(false);
 
   return (
-    <div className="flex min-h-screen bg-background">
-      <SidebarNav
-        contexto={contexto}
-        menuMovilAbierto={menuMovilAbierto}
-        onMenuMovilChange={setMenuMovilAbierto}
-      />
+    <div className="nexo-shell flex min-h-screen bg-background print:block print:bg-white">
+      <div className="nexo-shell-navegacion contents print:hidden">
+        <SidebarNav
+          contexto={contexto}
+          menuMovilAbierto={menuMovilAbierto}
+          onMenuMovilChange={setMenuMovilAbierto}
+        />
+      </div>
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="nexo-shell-contenido flex min-w-0 flex-1 flex-col print:block">
         <Topbar
           contexto={contexto}
           onAbrirMenu={() => setMenuMovilAbierto(true)}
           onAbrirPaleta={() => setPaletaAbierta(true)}
         />
-        <main className="mx-auto flex w-full max-w-[1440px] flex-1 flex-col gap-6 px-4 py-6 lg:px-6">
+        <main className="nexo-shell-main mx-auto flex w-full max-w-[1440px] flex-1 flex-col gap-6 px-4 py-6 lg:px-6 print:block print:max-w-none print:px-0 print:py-0">
           {children}
         </main>
       </div>
