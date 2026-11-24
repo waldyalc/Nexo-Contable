@@ -133,8 +133,10 @@ async function renovarSesion(page: Page, base: string): Promise<void> {
     timeout: 60_000,
   });
   await page.getByLabel(/correo/i).fill(user);
-  await page.getByLabel(/contraseña/i).fill(pass);
-  await page.getByRole("button", { name: /ingresar|entrar|iniciar/i }).click();
+  await page.locator('input[type="password"]').first().fill(pass);
+  await page
+    .getByRole("button", { name: /iniciar sesión|ingresar|entrar/i })
+    .click();
   await page.waitForURL(/\/(dashboard|empresas|definir-password)/, {
     timeout: 60_000,
   });
