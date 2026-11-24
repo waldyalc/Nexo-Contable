@@ -165,23 +165,9 @@ export function TablaLista<T>({
           </TableRow>
         </TableHeader>
 
-        <TableBody>
-          {filasVisibles.length === 0 ? (
-            <TableRow className="hover:bg-transparent">
-              <TableCell
-                colSpan={columnas.length}
-                className="whitespace-normal px-4 py-6"
-              >
-                <EstadoVacio
-                  titulo={vacio?.titulo ?? "Sin registros"}
-                  descripcion={vacio?.descripcion}
-                  icono={vacio?.icono}
-                  accion={vacio?.accion}
-                />
-              </TableCell>
-            </TableRow>
-          ) : (
-            filasVisibles.map((fila) => (
+        {filasVisibles.length > 0 ? (
+          <TableBody>
+            {filasVisibles.map((fila) => (
               <TableRow key={fila.id}>
                 {fila.getVisibleCells().map((celda) => {
                   const columna = columnasPorClave.get(celda.column.id);
@@ -202,10 +188,21 @@ export function TablaLista<T>({
                   );
                 })}
               </TableRow>
-            ))
-          )}
-        </TableBody>
+            ))}
+          </TableBody>
+        ) : null}
       </Table>
+
+      {filasVisibles.length === 0 ? (
+        <div className="px-4 py-6">
+          <EstadoVacio
+            titulo={vacio?.titulo ?? "Sin registros"}
+            descripcion={vacio?.descripcion}
+            icono={vacio?.icono}
+            accion={vacio?.accion}
+          />
+        </div>
+      ) : null}
 
       {paginacion && total > 0 ? (
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3 text-sm">
