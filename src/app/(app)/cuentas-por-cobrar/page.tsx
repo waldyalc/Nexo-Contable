@@ -85,6 +85,7 @@ export default async function CuentasPorCobrarPage({
 
   return (
     <CarteraVista
+      key={empresa.id}
       empresaId={empresa.id}
       tipo="cxc"
       fechaCorte={fechaCorte}

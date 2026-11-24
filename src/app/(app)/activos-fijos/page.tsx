@@ -112,6 +112,7 @@ export default async function ActivosFijosPage() {
 
   return (
     <ActivosFijosVista
+      key={empresa.id}
       empresaId={empresa.id}
       moneda={moneda}
       activos={activos}

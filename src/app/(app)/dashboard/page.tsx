@@ -349,7 +349,7 @@ export default async function DashboardPage({
   return (
     <>
       {encabezado}
-      <DashboardVista {...props} />
+      <DashboardVista key={empresa.id} {...props} />
     </>
   );
 }

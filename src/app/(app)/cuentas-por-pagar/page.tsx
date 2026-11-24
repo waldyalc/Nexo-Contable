@@ -85,6 +85,7 @@ export default async function CuentasPorPagarPage({
 
   return (
     <CarteraVista
+      key={empresa.id}
       empresaId={empresa.id}
       tipo="cxp"
       fechaCorte={fechaCorte}
