@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { DM_Sans, Manrope } from "next/font/google";
-import Script from "next/script";
 import type { ReactNode } from "react";
 
 import { Toaster } from "@/components/ui/sonner";
@@ -36,10 +35,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       className={`${dmSans.variable} ${manrope.variable}`}
       suppressHydrationWarning
     >
+      <head>
+        <script id="tema-nexo">{SCRIPT_TEMA}</script>
+      </head>
       <body>
-        <Script id="tema-nexo" strategy="beforeInteractive">
-          {SCRIPT_TEMA}
-        </Script>
         {children}
         <Toaster position="top-right" />
       </body>
