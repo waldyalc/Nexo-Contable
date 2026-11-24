@@ -4,6 +4,7 @@ import { IconMenu2 } from "@tabler/icons-react";
 import { usePathname } from "next/navigation";
 
 import { MigasDePan } from "@/components/pagina/migas-de-pan";
+import { AlternadorTema } from "@/components/shell/alternador-tema";
 import { CompanySwitcher } from "@/components/shell/company-switcher";
 import { migasParaRuta } from "@/components/shell/navegacion";
 import { UserMenu } from "@/components/shell/user-menu";
@@ -45,6 +46,7 @@ export function Topbar({ contexto, onAbrirMenu }: TopbarProps) {
           empresaActiva={contexto.empresaActiva}
           esAdminGlobal={contexto.esAdminGlobal}
         />
+        <AlternadorTema />
 
         <div className="border-l border-border pl-2 sm:pl-3">
           <UserMenu contexto={contexto} />

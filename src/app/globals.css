@@ -1,7 +1,10 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
+  color-scheme: light;
   --background: #f6f7f5;
   --foreground: #172a25;
   --card: #ffffff;
@@ -27,6 +30,33 @@
   --radius: 0.625rem;
   --radius-card: 0.9375rem;
   --shadow-card: 0 16px 48px rgba(24, 63, 47, 0.05);
+}
+
+.dark {
+  color-scheme: dark;
+  --background: #101815;
+  --foreground: #e6ece9;
+  --card: #16211c;
+  --card-foreground: #e6ece9;
+  --popover: #16211c;
+  --popover-foreground: #e6ece9;
+  --primary: #2a8a6c;
+  --primary-hover: #379b7b;
+  --primary-foreground: #ffffff;
+  --secondary: #1d352b;
+  --secondary-foreground: #bfe9d8;
+  --muted: #1a2620;
+  --muted-foreground: #94a69d;
+  --accent: #1d352b;
+  --accent-foreground: #bfe9d8;
+  --destructive: #c66a6a;
+  --destructive-foreground: #ffffff;
+  --warning: #d8aa5a;
+  --warning-foreground: #172015;
+  --border: #24332c;
+  --input: #2a3a32;
+  --ring: #42aa86;
+  --shadow-card: 0 16px 48px rgba(0, 0, 0, 0.22);
 }
 
 @theme inline {
@@ -57,6 +87,10 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: var(--radius-card);
+}
+
+html {
+  background-color: var(--background);
 }
 
 body {

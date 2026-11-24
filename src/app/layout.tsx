@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { DM_Sans, Manrope } from "next/font/google";
+import Script from "next/script";
 import type { ReactNode } from "react";
 
 import { Toaster } from "@/components/ui/sonner";
@@ -26,10 +27,19 @@ export const metadata: Metadata = {
     "Sistema de contabilidad multi-empresa para República Dominicana",
 };
 
+const SCRIPT_TEMA = `(function(){try{var clave='nexo-tema';var tema=localStorage.getItem(clave);var oscuro=tema==='dark'||(tema!=='light'&&window.matchMedia('(prefers-color-scheme: dark)').matches);var raiz=document.documentElement;raiz.classList.toggle('dark',oscuro);raiz.style.colorScheme=oscuro?'dark':'light';}catch(error){}})();`;
+
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="es" className={`${dmSans.variable} ${manrope.variable}`}>
+    <html
+      lang="es"
+      className={`${dmSans.variable} ${manrope.variable}`}
+      suppressHydrationWarning
+    >
       <body>
+        <Script id="tema-nexo" strategy="beforeInteractive">
+          {SCRIPT_TEMA}
+        </Script>
         {children}
         <Toaster position="top-right" />
       </body>
