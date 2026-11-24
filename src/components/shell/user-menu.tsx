@@ -109,6 +109,7 @@ export function UserMenu({ contexto }: UserMenuProps) {
               <Link
                 key={item.href}
                 href={item.href}
+                prefetch={false}
                 onClick={() => setAbierto(false)}
                 className={cn(
                   "flex h-9 items-center gap-2.5 rounded-[10px] px-2.5 text-sm font-medium transition-colors",

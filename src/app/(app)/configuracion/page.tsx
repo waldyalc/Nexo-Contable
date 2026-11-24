@@ -115,6 +115,7 @@ export default async function ConfiguracionPage() {
                   <Link
                     key={item.href}
                     href={item.href}
+                    prefetch={false}
                     className="group flex flex-col justify-between rounded-[15px] border border-border bg-card p-5 shadow-[var(--shadow-card)] transition-all hover:border-primary/40 hover:shadow-md"
                   >
                     <div>

@@ -51,6 +51,7 @@ function ContenidoSidebar({ contexto, onNavegar }: ContenidoSidebarProps) {
                 <Link
                   key={item.href}
                   href={item.href}
+                  prefetch={false}
                   onClick={onNavegar}
                   aria-current={activo ? "page" : undefined}
                   className={cn(

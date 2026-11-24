@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { cache } from "react";
 
 import { paginarConsulta } from "@/lib/supabase/paginar";
 import { createClient } from "@/lib/supabase/server";
@@ -92,33 +93,67 @@ function normalizarEstado(estado: string): "active" | "inactive" {
 
 /**
  * Contexto de la aplicación autenticada: perfil, empresas visibles por RLS y
- * empresa activa. Redirige a `/login` sin sesión y a `/definir-password`
- * cuando el usuario debe crear su contraseña personal en el primer ingreso.
+ * empresa activa. Memorizado por petición con `React.cache` para que `layout`
+ * y `page` compartan una sola ronda de consultas en paralelo.
  */
-export async function obtenerContextoApp(): Promise<ContextoApp> {
+export const obtenerContextoApp = cache(async (): Promise<ContextoApp> => {
   const supabase = await createClient();
 
-  const {
-    data: { user },
-    error: errorSesion,
-  } = await supabase.auth.getUser();
+  // `getClaims()` valida el JWT localmente (~0 ms) sin ida y vuelta extra a Auth;
+  // si no trae `sub`, se hace fallback a `getUser()`.
+  const { data: claimsData } = await supabase.auth.getClaims();
+  let userId =
+    typeof claimsData?.claims?.sub === "string" ? claimsData.claims.sub : null;
 
-  if (errorSesion || !user) {
-    redirect("/login");
+  if (!userId) {
+    const {
+      data: { user },
+      error: errorSesion,
+    } = await supabase.auth.getUser();
+    if (errorSesion || !user) {
+      redirect("/login");
+    }
+    userId = user.id;
   }
 
-  const { data: filaPerfil, error: errorPerfil } = await supabase
-    .from("perfiles")
-    .select("user_id, email, nombre, rol_global, debe_definir_password, activo")
-    .eq("user_id", user.id)
-    .maybeSingle();
+  const [perfilRes, empresasFilas, asignacionesFilas, cookieStore] =
+    await Promise.all([
+      supabase
+        .from("perfiles")
+        .select(
+          "user_id, email, nombre, rol_global, debe_definir_password, activo",
+        )
+        .eq("user_id", userId)
+        .maybeSingle(),
+      paginarConsulta<EmpresaFila>(async (desde, hasta) => {
+        const { data, error } = await supabase
+          .from("empresas")
+          .select(
+            "id, nombre_comercial, razon_social, rnc, estado, fecha_inicio, regimen_fiscal, moneda_funcional",
+          )
+          .order("nombre_comercial", { ascending: true })
+          .order("id", { ascending: true })
+          .range(desde, hasta);
+        return { data: (data as EmpresaFila[] | null) ?? null, error };
+      }),
+      paginarConsulta<AsignacionFila>(async (desde, hasta) => {
+        const { data, error } = await supabase
+          .from("empresa_usuarios")
+          .select("empresa_id, rol, es_principal")
+          .eq("user_id", userId)
+          .order("empresa_id", { ascending: true })
+          .range(desde, hasta);
+        return { data: (data as AsignacionFila[] | null) ?? null, error };
+      }),
+      cookies(),
+    ]);
 
-  if (errorPerfil || !filaPerfil) {
+  if (perfilRes.error || !perfilRes.data) {
     await supabase.auth.signOut();
     redirect("/login?error=no-autorizado");
   }
 
-  const perfilFila = filaPerfil as PerfilFila;
+  const perfilFila = perfilRes.data as PerfilFila;
 
   if (!perfilFila.activo) {
     await supabase.auth.signOut();
@@ -130,29 +165,6 @@ export async function obtenerContextoApp(): Promise<ContextoApp> {
   }
 
   const esAdminGlobal = perfilFila.rol_global === "admin_global";
-
-  const [empresasFilas, asignacionesFilas] = await Promise.all([
-    paginarConsulta<EmpresaFila>(async (desde, hasta) => {
-      const { data, error } = await supabase
-        .from("empresas")
-        .select(
-          "id, nombre_comercial, razon_social, rnc, estado, fecha_inicio, regimen_fiscal, moneda_funcional",
-        )
-        .order("nombre_comercial", { ascending: true })
-        .order("id", { ascending: true })
-        .range(desde, hasta);
-      return { data: (data as EmpresaFila[] | null) ?? null, error };
-    }),
-    paginarConsulta<AsignacionFila>(async (desde, hasta) => {
-      const { data, error } = await supabase
-        .from("empresa_usuarios")
-        .select("empresa_id, rol, es_principal")
-        .eq("user_id", user.id)
-        .order("empresa_id", { ascending: true })
-        .range(desde, hasta);
-      return { data: (data as AsignacionFila[] | null) ?? null, error };
-    }),
-  ]);
 
   const asignacionPorEmpresa = new Map<string, AsignacionFila>(
     asignacionesFilas.map((asignacion) => [asignacion.empresa_id, asignacion]),
@@ -181,7 +193,7 @@ export async function obtenerContextoApp(): Promise<ContextoApp> {
     });
   }
 
-  const cookieEmpresa = (await cookies()).get(COOKIE_EMPRESA_ACTIVA)?.value;
+  const cookieEmpresa = cookieStore.get(COOKIE_EMPRESA_ACTIVA)?.value;
 
   const empresaActiva =
     empresas.find((empresa) => empresa.id === cookieEmpresa) ??
@@ -204,4 +216,4 @@ export async function obtenerContextoApp(): Promise<ContextoApp> {
     esAdminGlobal,
     rolActivo: esAdminGlobal ? "admin_global" : (empresaActiva?.rol ?? null),
   };
-}
+});
