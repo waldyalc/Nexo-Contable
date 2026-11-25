@@ -7,11 +7,12 @@ import {
   IconReceipt2,
   IconWallet,
 } from "@tabler/icons-react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 
 import { DatePicker } from "@/components/date-picker";
 import { BarraLista } from "@/components/listas/barra-lista";
+import { BuscadorLista } from "@/components/listas/buscador-lista";
 import { PillEstado } from "@/components/listas/pill-estado";
 import { TablaLista } from "@/components/listas/tabla-lista";
 import { TarjetaLista } from "@/components/listas/tarjeta-lista";
@@ -19,7 +20,7 @@ import {
   DialogoAnular,
   DialogoRegistrarPago,
 } from "@/components/operaciones/dialogos-cartera";
-import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
+import { BotonDescargar } from "@/components/reportes/boton-descargar";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -28,7 +29,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { formatearFecha, formatearMoneda } from "@/lib/formato";
+import {
+  formatearFecha,
+  formatearMoneda,
+  formatearRnc,
+  normalizarRnc,
+} from "@/lib/formato";
 import {
   BUCKETS_ANTIGUEDAD,
   type CuentaOpcion,
@@ -36,12 +42,16 @@ import {
   type PagoListado,
   type SaldoAntiguedad,
 } from "@/lib/operaciones/tipos";
+import { adaptarAntiguedadCartera } from "@/lib/reportes/adaptadores-cartera";
+import type { EmpresaReporte } from "@/lib/reportes/exportar/tipos";
 
 export interface CarteraVistaProps {
   empresaId: string;
+  empresaReporte: EmpresaReporte;
   tipo: "cxc" | "cxp";
   fechaCorte: string;
   saldos: readonly SaldoAntiguedad[];
+  rncPorTercero: Readonly<Record<string, string>>;
   pagosPorDocumento: Readonly<Record<string, PagoListado[]>>;
   cuentas: readonly CuentaOpcion[];
   metodosPago: readonly MetodoPagoOpcion[];
@@ -55,9 +65,11 @@ export interface CarteraVistaProps {
  */
 export function CarteraVista({
   empresaId,
+  empresaReporte,
   tipo,
   fechaCorte,
   saldos,
+  rncPorTercero,
   pagosPorDocumento,
   cuentas,
   metodosPago,
@@ -65,6 +77,7 @@ export function CarteraVista({
 }: CarteraVistaProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const esCobrar = tipo === "cxc";
   const [documentoPago, setDocumentoPago] = useState<SaldoAntiguedad | null>(
     null,
@@ -72,19 +85,51 @@ export function CarteraVista({
   const [historial, setHistorial] = useState<SaldoAntiguedad | null>(null);
   const [pagoAnular, setPagoAnular] = useState<PagoListado | null>(null);
 
+  const termino = (searchParams.get("q") ?? "").trim().toLowerCase();
+  const digitosTermino = normalizarRnc(termino);
+  const busquedaActiva = termino !== "";
+
+  const saldosFiltrados = useMemo(() => {
+    if (!busquedaActiva) return saldos;
+
+    return saldos.filter((saldo) => {
+      const rnc = rncPorTercero[saldo.terceroId] ?? "";
+      const coincideNombre = saldo.tercero.toLowerCase().includes(termino);
+      const coincideRnc =
+        digitosTermino !== "" && normalizarRnc(rnc).includes(digitosTermino);
+      return coincideNombre || coincideRnc;
+    });
+  }, [saldos, rncPorTercero, termino, digitosTermino, busquedaActiva]);
+
   const totales = useMemo(() => {
     const mapa = new Map<string, number>();
-    for (const saldo of saldos) {
+    for (const saldo of saldosFiltrados) {
       mapa.set(saldo.bucket, (mapa.get(saldo.bucket) ?? 0) + saldo.saldo);
     }
     return mapa;
-  }, [saldos]);
+  }, [saldosFiltrados]);
 
-  const total = saldos.reduce((suma, saldo) => suma + saldo.saldo, 0);
+  const total = saldosFiltrados.reduce((suma, saldo) => suma + saldo.saldo, 0);
+
+  const tablaAntiguedad = useMemo(
+    () =>
+      adaptarAntiguedadCartera({
+        tipo,
+        fechaCorte,
+        saldos: saldosFiltrados,
+        rncPorTercero,
+        empresa: empresaReporte,
+      }),
+    [tipo, fechaCorte, saldosFiltrados, rncPorTercero, empresaReporte],
+  );
 
   function cambiarFecha(valor: string) {
-    const parametros = new URLSearchParams();
-    if (valor !== "") parametros.set("corte", valor);
+    const parametros = new URLSearchParams(searchParams.toString());
+    if (valor === "") {
+      parametros.delete("corte");
+    } else {
+      parametros.set("corte", valor);
+    }
     const cadena = parametros.toString();
     router.push(cadena === "" ? pathname : `${pathname}?${cadena}`);
   }
@@ -92,22 +137,13 @@ export function CarteraVista({
   const pagosDelHistorial = historial
     ? (pagosPorDocumento[historial.documentoId] ?? [])
     : [];
+  const descripcionDocumentos = busquedaActiva
+    ? `${saldosFiltrados.length} de ${saldos.length} documentos con saldo al ${formatearFecha(fechaCorte)}`
+    : `${saldos.length} documentos con saldo al ${formatearFecha(fechaCorte)}`;
+  const nombreArchivo = `antiguedad-${tipo}-${fechaCorte}`;
 
   return (
     <>
-      <EncabezadoPagina
-        titulo={esCobrar ? "Cuentas por cobrar" : "Cuentas por pagar"}
-        descripcion={
-          esCobrar
-            ? "Saldos de clientes por antigüedad, cobros y anulaciones por reverso."
-            : "Saldos de proveedores por antigüedad, pagos y anulaciones por reverso."
-        }
-        migas={[
-          { etiqueta: "Operaciones" },
-          { etiqueta: esCobrar ? "Cuentas por cobrar" : "Cuentas por pagar" },
-        ]}
-      />
-
       <section
         aria-label="Antigüedad de saldos"
         className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6"
@@ -152,18 +188,41 @@ export function CarteraVista({
 
       <TarjetaLista>
         <BarraLista
-          titulo={esCobrar ? "Documentos por cobrar" : "Documentos por pagar"}
-          descripcion={`${saldos.length} documentos con saldo al ${formatearFecha(fechaCorte)}`}
+          titulo="Antigüedad de saldos"
+          descripcion={descripcionDocumentos}
+          acciones={
+            <BotonDescargar
+              tabla={tablaAntiguedad}
+              nombreArchivo={nombreArchivo}
+              variant="outline"
+            />
+          }
+          filtros={
+            <BuscadorLista
+              placeholder={
+                esCobrar ? "Buscar cliente o RNC…" : "Buscar proveedor o RNC…"
+              }
+              ariaLabel={
+                esCobrar
+                  ? "Buscar cuentas por cobrar"
+                  : "Buscar cuentas por pagar"
+              }
+              parametroPagina={null}
+            />
+          }
         >
           <TablaLista<SaldoAntiguedad>
-            filas={saldos}
+            filas={saldosFiltrados}
             claveFila={(saldo) => saldo.documentoId}
             ordenable
             paginacion={{ tamanoPagina: 15, etiqueta: "documentos" }}
             vacio={{
-              titulo: "Sin saldos pendientes",
-              descripcion:
-                "Todos los documentos del corte están saldados o aún no hay movimiento.",
+              titulo: busquedaActiva
+                ? "Sin coincidencias"
+                : "Sin saldos pendientes",
+              descripcion: busquedaActiva
+                ? "Prueba con otro nombre, RNC o cédula."
+                : "Todos los documentos del corte están saldados o aún no hay movimiento.",
               icono: esCobrar ? (
                 <IconReceipt2 className="size-8" />
               ) : (
@@ -183,7 +242,21 @@ export function CarteraVista({
               {
                 clave: "tercero",
                 encabezado: esCobrar ? "Cliente" : "Proveedor",
-                celda: (saldo) => saldo.tercero,
+                celda: (saldo) => {
+                  const rnc = formatearRnc(
+                    rncPorTercero[saldo.terceroId] ?? "",
+                  );
+                  return (
+                    <div className="flex min-w-0 flex-col">
+                      <span className="truncate font-medium text-foreground">
+                        {saldo.tercero}
+                      </span>
+                      <span className="truncate text-xs text-muted-foreground">
+                        {rnc === "" ? "Sin RNC" : rnc}
+                      </span>
+                    </div>
+                  );
+                },
               },
               {
                 clave: "emision",
