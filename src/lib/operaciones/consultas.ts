@@ -79,10 +79,10 @@ interface DocumentoFila {
   concepto: string;
   subtotal: number;
   impuesto: number;
+  retenciones: number;
   total: number;
   estado: string;
   documento_acreditado_id: string | null;
-  retenciones: number;
   otros_impuestos: number;
   cuenta_id: string;
   cuenta_control_id: string;

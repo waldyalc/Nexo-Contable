@@ -1,49 +1,53 @@
 "use client";
 
-import {
-  IconBan,
-  IconClipboardList,
-  IconHistory,
-  IconReceipt2,
-  IconWallet,
-} from "@tabler/icons-react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { IconPlus, IconReceipt2, IconUsers } from "@tabler/icons-react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 
-import { DatePicker } from "@/components/date-picker";
-import { BarraLista } from "@/components/listas/barra-lista";
-import { BuscadorLista } from "@/components/listas/buscador-lista";
-import { PillEstado } from "@/components/listas/pill-estado";
-import { TablaLista } from "@/components/listas/tabla-lista";
+import { AntiguedadCarteraTab } from "@/components/cartera/antiguedad-cartera-tab";
+import { DocumentosCarteraTab } from "@/components/cartera/documentos-cartera-tab";
+import { PagosCarteraTab } from "@/components/cartera/pagos-cartera-tab";
+import { TerceroFormDialog } from "@/components/cartera/tercero-form-dialog";
+import { TercerosCarteraTab } from "@/components/cartera/terceros-cartera-tab";
+import {
+  DocumentoFormDialog,
+  type ModoDocumento,
+} from "@/components/gastos/documento-form-dialog";
 import { TarjetaLista } from "@/components/listas/tarjeta-lista";
 import {
   DialogoAnular,
   DialogoRegistrarPago,
+  type DocumentoPago,
 } from "@/components/operaciones/dialogos-cartera";
-import { BotonDescargar } from "@/components/reportes/boton-descargar";
+import { DocumentoDetalleDialog } from "@/components/operaciones/documento-detalle-dialog";
+import { TercerosSheet } from "@/components/terceros/terceros-sheet";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  formatearFecha,
-  formatearMoneda,
-  formatearRnc,
-  normalizarRnc,
-} from "@/lib/formato";
-import {
-  BUCKETS_ANTIGUEDAD,
-  type CuentaOpcion,
-  type MetodoPagoOpcion,
-  type PagoListado,
-  type SaldoAntiguedad,
+  enriquecerPagosCartera,
+  tercerosDeCartera,
+  ultimaFacturaCartera,
+} from "@/lib/cartera/utilidades";
+import { formatearFecha, formatearMoneda } from "@/lib/formato";
+import type { CargadorDocumentoDetalle } from "@/lib/operaciones/consultas";
+import type {
+  CuentaOpcion,
+  DocumentoAcreditable,
+  DocumentoListado,
+  MetodoPagoOpcion,
+  PagoListado,
+  SaldoAntiguedad,
+  SecuenciaNcfListado,
+  TerceroListado,
 } from "@/lib/operaciones/tipos";
-import { adaptarAntiguedadCartera } from "@/lib/reportes/adaptadores-cartera";
 import type { EmpresaReporte } from "@/lib/reportes/exportar/tipos";
+
+type PestanaCartera =
+  | "facturas"
+  | "terceros"
+  | "notas"
+  | "pagos"
+  | "antiguedad";
 
 export interface CarteraVistaProps {
   empresaId: string;
@@ -51,17 +55,29 @@ export interface CarteraVistaProps {
   tipo: "cxc" | "cxp";
   fechaCorte: string;
   saldos: readonly SaldoAntiguedad[];
+  documentos: readonly DocumentoListado[];
+  pagos: readonly PagoListado[];
+  terceros: readonly TerceroListado[];
   rncPorTercero: Readonly<Record<string, string>>;
-  pagosPorDocumento: Readonly<Record<string, PagoListado[]>>;
   cuentas: readonly CuentaOpcion[];
   metodosPago: readonly MetodoPagoOpcion[];
+  secuencias: readonly SecuenciaNcfListado[];
+  documentosAcreditables: readonly DocumentoAcreditable[];
+  tasaItbisBps: number;
+  cuentaItbisAdelantadoId?: string | null;
+  cuentaItbisPorPagarId?: string | null;
+  cuentaRetencionIsrId?: string | null;
+  cuentaRetencionItbisId?: string | null;
+  cuentaCxcDefaultId?: string | null;
+  cuentaCxpDefaultId?: string | null;
   moneda: "DOP" | "USD";
+  cargarDetalleDocumento: CargadorDocumentoDetalle;
 }
 
 /**
- * Cartera reutilizable para Cuentas por cobrar (cxc) y por pagar (cxp):
- * KPIs por antigüedad, saldo pendiente, historial de pagos y acciones de
- * cobro/pago y anulación por reverso.
+ * Ciclo completo de cartera del Nexo original: facturas, terceros, notas,
+ * cobros/pagos y antigüedad. La creación usa el motor actual (documentos ya
+ * nacen contabilizados); las anulaciones siempre son reversos auditables.
  */
 export function CarteraVista({
   empresaId,
@@ -69,266 +85,325 @@ export function CarteraVista({
   tipo,
   fechaCorte,
   saldos,
+  documentos,
+  pagos,
+  terceros,
   rncPorTercero,
-  pagosPorDocumento,
   cuentas,
   metodosPago,
+  secuencias,
+  documentosAcreditables,
+  tasaItbisBps,
+  cuentaItbisAdelantadoId,
+  cuentaItbisPorPagarId,
+  cuentaRetencionIsrId,
+  cuentaRetencionItbisId,
+  cuentaCxcDefaultId,
+  cuentaCxpDefaultId,
   moneda,
+  cargarDetalleDocumento,
 }: CarteraVistaProps) {
   const router = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
   const esCobrar = tipo === "cxc";
-  const [documentoPago, setDocumentoPago] = useState<SaldoAntiguedad | null>(
+  const modoFactura: ModoDocumento = esCobrar ? "venta" : "compra";
+  const modoNota: ModoDocumento = esCobrar
+    ? "nota_credito_venta"
+    : "nota_credito_compra";
+
+  const [pestana, setPestana] = useState<PestanaCartera>(() =>
+    searchParams.has("q") || searchParams.has("corte")
+      ? "antiguedad"
+      : "facturas",
+  );
+  const [formAbierto, setFormAbierto] = useState(false);
+  const [modoForm, setModoForm] = useState<ModoDocumento>(modoFactura);
+  const [tercerosAbierto, setTercerosAbierto] = useState(false);
+  const [terceroFormAbierto, setTerceroFormAbierto] = useState(false);
+  const [terceroEditando, setTerceroEditando] = useState<TerceroListado | null>(
     null,
   );
-  const [historial, setHistorial] = useState<SaldoAntiguedad | null>(null);
+  const [documentoPago, setDocumentoPago] = useState<DocumentoPago | null>(
+    null,
+  );
+  const [documentoAnular, setDocumentoAnular] =
+    useState<DocumentoListado | null>(null);
+  const [detalleDocumento, setDetalleDocumento] =
+    useState<DocumentoListado | null>(null);
   const [pagoAnular, setPagoAnular] = useState<PagoListado | null>(null);
 
-  const termino = (searchParams.get("q") ?? "").trim().toLowerCase();
-  const digitosTermino = normalizarRnc(termino);
-  const busquedaActiva = termino !== "";
+  const tipoFactura = esCobrar ? "sales_invoice" : "purchase_invoice";
+  const tipoNota = esCobrar ? "sales_credit" : "purchase_credit";
 
-  const saldosFiltrados = useMemo(() => {
-    if (!busquedaActiva) return saldos;
-
-    return saldos.filter((saldo) => {
-      const rnc = rncPorTercero[saldo.terceroId] ?? "";
-      const coincideNombre = saldo.tercero.toLowerCase().includes(termino);
-      const coincideRnc =
-        digitosTermino !== "" && normalizarRnc(rnc).includes(digitosTermino);
-      return coincideNombre || coincideRnc;
-    });
-  }, [saldos, rncPorTercero, termino, digitosTermino, busquedaActiva]);
-
-  const totales = useMemo(() => {
-    const mapa = new Map<string, number>();
-    for (const saldo of saldosFiltrados) {
-      mapa.set(saldo.bucket, (mapa.get(saldo.bucket) ?? 0) + saldo.saldo);
+  const facturas = useMemo(
+    () => documentos.filter((documento) => documento.tipo === tipoFactura),
+    [documentos, tipoFactura],
+  );
+  const notas = useMemo(
+    () => documentos.filter((documento) => documento.tipo === tipoNota),
+    [documentos, tipoNota],
+  );
+  const tercerosCiclo = useMemo(
+    () => tercerosDeCartera(terceros, tipo),
+    [terceros, tipo],
+  );
+  const pagosCartera = useMemo(
+    () => enriquecerPagosCartera(pagos, documentos, rncPorTercero),
+    [pagos, documentos, rncPorTercero],
+  );
+  const pagosPorDocumento = useMemo(() => {
+    const porDocumento: Record<string, PagoListado[]> = {};
+    for (const pago of pagosCartera) {
+      const lista = porDocumento[pago.documentoId] ?? [];
+      lista.push(pago);
+      porDocumento[pago.documentoId] = lista;
     }
-    return mapa;
-  }, [saldosFiltrados]);
-
-  const total = saldosFiltrados.reduce((suma, saldo) => suma + saldo.saldo, 0);
-
-  const tablaAntiguedad = useMemo(
+    return porDocumento;
+  }, [pagosCartera]);
+  const ultimaFactura = useMemo(
     () =>
-      adaptarAntiguedadCartera({
-        tipo,
-        fechaCorte,
-        saldos: saldosFiltrados,
-        rncPorTercero,
-        empresa: empresaReporte,
-      }),
-    [tipo, fechaCorte, saldosFiltrados, rncPorTercero, empresaReporte],
+      esCobrar ? null : ultimaFacturaCartera(documentos, "purchase_invoice"),
+    [documentos, esCobrar],
   );
 
-  function cambiarFecha(valor: string) {
-    const parametros = new URLSearchParams(searchParams.toString());
-    if (valor === "") {
-      parametros.delete("corte");
-    } else {
-      parametros.set("corte", valor);
-    }
-    const cadena = parametros.toString();
-    router.push(cadena === "" ? pathname : `${pathname}?${cadena}`);
+  function abrirFormulario(modo: ModoDocumento) {
+    setModoForm(modo);
+    setFormAbierto(true);
   }
 
-  const pagosDelHistorial = historial
-    ? (pagosPorDocumento[historial.documentoId] ?? [])
-    : [];
-  const descripcionDocumentos = busquedaActiva
-    ? `${saldosFiltrados.length} de ${saldos.length} documentos con saldo al ${formatearFecha(fechaCorte)}`
-    : `${saldos.length} documentos con saldo al ${formatearFecha(fechaCorte)}`;
-  const nombreArchivo = `antiguedad-${tipo}-${fechaCorte}`;
+  function abrirCrearTercero() {
+    setTerceroEditando(null);
+    setTerceroFormAbierto(true);
+  }
+
+  function abrirEditarTercero(tercero: TerceroListado) {
+    setTerceroEditando(tercero);
+    setTerceroFormAbierto(true);
+  }
+
+  function registrarPagoDocumento(documento: DocumentoListado) {
+    setDocumentoPago({
+      id: documento.id,
+      numero: documento.numero,
+      tercero: documento.tercero,
+      saldo: documento.saldo,
+    });
+  }
+
+  function registrarPagoSaldo(saldo: SaldoAntiguedad) {
+    setDocumentoPago({
+      id: saldo.documentoId,
+      numero: saldo.numero,
+      tercero: saldo.tercero,
+      saldo: saldo.saldo,
+    });
+  }
 
   return (
     <>
-      <section
-        aria-label="Antigüedad de saldos"
-        className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6"
+      <Tabs
+        value={pestana}
+        onValueChange={(valor) => {
+          if (
+            valor === "facturas" ||
+            valor === "terceros" ||
+            valor === "notas" ||
+            valor === "pagos" ||
+            valor === "antiguedad"
+          ) {
+            setPestana(valor);
+          }
+        }}
+        className="gap-3"
       >
-        <TarjetaLista className="px-4 py-3">
-          <div className="flex flex-col gap-1">
-            <span className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
-              Fecha de corte
-            </span>
-            <DatePicker
-              value={fechaCorte}
-              onChange={cambiarFecha}
-              aria-label="Fecha de corte de la antigüedad"
-            />
+        <TarjetaLista data-lista="ciclo-cartera">
+          <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
+            <div className="flex min-w-0 flex-col gap-0.5">
+              <h2 className="font-display truncate text-base font-semibold tracking-[-0.02em] text-foreground">
+                {esCobrar ? "Facturas pendientes" : "Facturas de proveedores"}
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Saldos calculados con cobros, pagos y notas aplicadas
+              </p>
+            </div>
+            <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto [&_button]:h-9 [&_button]:whitespace-nowrap [&_button]:shrink-0">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={abrirCrearTercero}
+              >
+                <IconPlus className="size-4" />
+                Tercero
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setTercerosAbierto(true)}
+              >
+                <IconUsers className="size-4" />
+                Terceros
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => abrirFormulario(modoNota)}
+              >
+                <IconReceipt2 className="size-4" />
+                Nota de crédito
+              </Button>
+              <Button
+                type="button"
+                onClick={() => abrirFormulario(modoFactura)}
+              >
+                <IconPlus className="size-4" />
+                Nueva factura
+              </Button>
+            </div>
+          </div>
+
+          <div className="w-full overflow-x-auto border-t border-border px-4 py-2">
+            <TabsList className="w-fit">
+              <TabsTrigger value="facturas">
+                {esCobrar ? "Facturas" : "Facturas proveedor"}
+              </TabsTrigger>
+              <TabsTrigger value="terceros">
+                {esCobrar ? "Clientes" : "Suplidores"}
+              </TabsTrigger>
+              <TabsTrigger value="notas">Notas de crédito</TabsTrigger>
+              <TabsTrigger value="pagos">
+                {esCobrar ? "Cobros" : "Pagos"}
+              </TabsTrigger>
+              <TabsTrigger value="antiguedad">Antigüedad</TabsTrigger>
+            </TabsList>
           </div>
         </TarjetaLista>
 
-        {BUCKETS_ANTIGUEDAD.map((bucket) => (
-          <TarjetaLista key={bucket.clave} className="px-4 py-3">
+        {!esCobrar ? (
+          <TarjetaLista className="px-4 py-3" data-lista="ultima-factura-cxp">
             <div className="flex flex-col gap-0.5">
               <span className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
-                {bucket.etiqueta}
+                Último número de factura usado
               </span>
               <span className="font-display text-lg font-bold tracking-[-0.02em] text-foreground tabular-nums">
-                {formatearMoneda(totales.get(bucket.clave) ?? 0, moneda)}
+                {ultimaFactura?.numero ?? "—"}
               </span>
+              {ultimaFactura && ultimaFactura.ncf !== "" ? (
+                <span className="text-xs text-muted-foreground">
+                  NCF {ultimaFactura.ncf} · {ultimaFactura.tercero}
+                </span>
+              ) : null}
             </div>
           </TarjetaLista>
-        ))}
+        ) : null}
 
-        <TarjetaLista className="px-4 py-3">
-          <div className="flex flex-col gap-0.5">
-            <span className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
-              Total pendiente
-            </span>
-            <span className="font-display text-lg font-bold tracking-[-0.02em] text-primary tabular-nums">
-              {formatearMoneda(total, moneda)}
-            </span>
-          </div>
-        </TarjetaLista>
-      </section>
-
-      <TarjetaLista>
-        <BarraLista
-          titulo="Antigüedad de saldos"
-          descripcion={descripcionDocumentos}
-          acciones={
-            <BotonDescargar
-              tabla={tablaAntiguedad}
-              nombreArchivo={nombreArchivo}
-              variant="outline"
-            />
-          }
-          filtros={
-            <BuscadorLista
-              placeholder={
-                esCobrar ? "Buscar cliente o RNC…" : "Buscar proveedor o RNC…"
-              }
-              ariaLabel={
-                esCobrar
-                  ? "Buscar cuentas por cobrar"
-                  : "Buscar cuentas por pagar"
-              }
-              parametroPagina={null}
-            />
-          }
-        >
-          <TablaLista<SaldoAntiguedad>
-            filas={saldosFiltrados}
-            claveFila={(saldo) => saldo.documentoId}
-            ordenable
-            paginacion={{ tamanoPagina: 15, etiqueta: "documentos" }}
-            vacio={{
-              titulo: busquedaActiva
-                ? "Sin coincidencias"
-                : "Sin saldos pendientes",
-              descripcion: busquedaActiva
-                ? "Prueba con otro nombre, RNC o cédula."
-                : "Todos los documentos del corte están saldados o aún no hay movimiento.",
-              icono: esCobrar ? (
-                <IconReceipt2 className="size-8" />
-              ) : (
-                <IconClipboardList className="size-8" />
-              ),
-            }}
-            columnas={[
-              {
-                clave: "documento",
-                encabezado: "Documento",
-                celda: (saldo) => (
-                  <span className="font-medium text-foreground">
-                    {saldo.numero}
-                  </span>
-                ),
-              },
-              {
-                clave: "tercero",
-                encabezado: esCobrar ? "Cliente" : "Proveedor",
-                celda: (saldo) => {
-                  const rnc = formatearRnc(
-                    rncPorTercero[saldo.terceroId] ?? "",
-                  );
-                  return (
-                    <div className="flex min-w-0 flex-col">
-                      <span className="truncate font-medium text-foreground">
-                        {saldo.tercero}
-                      </span>
-                      <span className="truncate text-xs text-muted-foreground">
-                        {rnc === "" ? "Sin RNC" : rnc}
-                      </span>
-                    </div>
-                  );
-                },
-              },
-              {
-                clave: "emision",
-                encabezado: "Emisión",
-                celda: (saldo) => formatearFecha(saldo.fechaEmision),
-              },
-              {
-                clave: "vencimiento",
-                encabezado: "Vence",
-                celda: (saldo) => formatearFecha(saldo.fechaVencimiento),
-              },
-              {
-                clave: "dias",
-                encabezado: "Días vencido",
-                alineacion: "derecha",
-                celda: (saldo) => (
-                  <PillEstado
-                    estado={saldo.diasVencido > 0 ? "vencida" : "pendiente"}
-                  >
-                    {saldo.diasVencido > 0
-                      ? `${saldo.diasVencido} días`
-                      : "Al día"}
-                  </PillEstado>
-                ),
-              },
-              {
-                clave: "saldo",
-                encabezado: "Saldo pendiente",
-                alineacion: "derecha",
-                celda: (saldo) => formatearMoneda(saldo.saldo, moneda),
-              },
-              {
-                clave: "historial",
-                encabezado: "Historial",
-                celda: (saldo) => {
-                  const pagos = pagosPorDocumento[saldo.documentoId] ?? [];
-                  return (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setHistorial(saldo)}
-                    >
-                      <IconHistory className="size-4" />
-                      {pagos.length === 0
-                        ? "Sin pagos"
-                        : `${pagos.length} ${pagos.length === 1 ? "pago" : "pagos"}`}
-                    </Button>
-                  );
-                },
-              },
-              {
-                clave: "acciones",
-                encabezado: "",
-                ordenable: false,
-                alineacion: "derecha",
-                celda: (saldo) => (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setDocumentoPago(saldo)}
-                  >
-                    <IconWallet className="size-4" />
-                    {esCobrar ? "Registrar cobro" : "Registrar pago"}
-                  </Button>
-                ),
-              },
-            ]}
+        <TabsContent value="facturas" className="flex flex-col gap-3">
+          <DocumentosCarteraTab
+            tipo={tipo}
+            documentos={facturas}
+            rncPorTercero={rncPorTercero}
+            moneda={moneda}
+            esNotas={false}
+            onVerDetalle={setDetalleDocumento}
+            onRegistrarPago={registrarPagoDocumento}
+            onAnularDocumento={setDocumentoAnular}
+            onCrearDocumento={() => abrirFormulario(modoFactura)}
           />
-        </BarraLista>
-      </TarjetaLista>
+        </TabsContent>
+
+        <TabsContent value="terceros" className="flex flex-col gap-3">
+          <TercerosCarteraTab
+            tipo={tipo}
+            terceros={tercerosCiclo}
+            onEditar={abrirEditarTercero}
+            onCrear={abrirCrearTercero}
+          />
+        </TabsContent>
+
+        <TabsContent value="notas" className="flex flex-col gap-3">
+          <DocumentosCarteraTab
+            tipo={tipo}
+            documentos={notas}
+            rncPorTercero={rncPorTercero}
+            moneda={moneda}
+            esNotas
+            onVerDetalle={setDetalleDocumento}
+            onRegistrarPago={registrarPagoDocumento}
+            onAnularDocumento={setDocumentoAnular}
+            onCrearDocumento={() => abrirFormulario(modoNota)}
+          />
+        </TabsContent>
+
+        <TabsContent value="pagos" className="flex flex-col gap-3">
+          <PagosCarteraTab
+            tipo={tipo}
+            pagos={pagosCartera}
+            moneda={moneda}
+            onVerDocumento={setDetalleDocumento}
+            onAnularPago={setPagoAnular}
+          />
+        </TabsContent>
+
+        <TabsContent value="antiguedad" className="flex flex-col gap-3">
+          <AntiguedadCarteraTab
+            tipo={tipo}
+            fechaCorte={fechaCorte}
+            saldos={saldos}
+            rncPorTercero={rncPorTercero}
+            pagosPorDocumento={pagosPorDocumento}
+            moneda={moneda}
+            empresaReporte={empresaReporte}
+            onRegistrarPago={registrarPagoSaldo}
+            onAnularPago={setPagoAnular}
+          />
+        </TabsContent>
+      </Tabs>
+
+      <DocumentoFormDialog
+        abierto={formAbierto}
+        onOpenChange={setFormAbierto}
+        empresaId={empresaId}
+        modo={modoForm}
+        terceros={terceros}
+        cuentas={cuentas}
+        secuencias={secuencias}
+        documentosAcreditables={documentosAcreditables}
+        tasaItbisBps={tasaItbisBps}
+        cuentaItbisAdelantadoId={cuentaItbisAdelantadoId}
+        cuentaItbisPorPagarId={cuentaItbisPorPagarId}
+        cuentaRetencionIsrId={cuentaRetencionIsrId}
+        cuentaRetencionItbisId={cuentaRetencionItbisId}
+        cuentaCxcDefaultId={cuentaCxcDefaultId}
+        cuentaCxpDefaultId={cuentaCxpDefaultId}
+      />
+
+      <TercerosSheet
+        abierto={tercerosAbierto}
+        onOpenChange={setTercerosAbierto}
+        empresaId={empresaId}
+        terceros={terceros}
+        cuentas={cuentas}
+        tipoInicial={esCobrar ? "customer" : "supplier"}
+      />
+
+      <TerceroFormDialog
+        abierto={terceroFormAbierto}
+        onOpenChange={setTerceroFormAbierto}
+        empresaId={empresaId}
+        tercero={terceroEditando}
+        tipoInicial={esCobrar ? "customer" : "supplier"}
+        onGuardado={() => router.refresh()}
+      />
+
+      <DocumentoDetalleDialog
+        abierto={detalleDocumento !== null}
+        onOpenChange={(abierto) => {
+          if (!abierto) setDetalleDocumento(null);
+        }}
+        empresaId={empresaId}
+        documento={detalleDocumento}
+        empresa={empresaReporte}
+        cargarDetalle={cargarDetalleDocumento}
+      />
 
       <DialogoRegistrarPago
         abierto={documentoPago !== null}
@@ -336,90 +411,24 @@ export function CarteraVista({
           if (!abierto) setDocumentoPago(null);
         }}
         empresaId={empresaId}
-        documento={
-          documentoPago
-            ? {
-                id: documentoPago.documentoId,
-                numero: documentoPago.numero,
-                tercero: documentoPago.tercero,
-                saldo: documentoPago.saldo,
-              }
-            : null
-        }
+        documento={documentoPago}
         cuentas={cuentas}
         metodosPago={metodosPago}
         etiquetaAccion={esCobrar ? "Registrar cobro" : "Registrar pago"}
         onRegistrado={() => router.refresh()}
       />
 
-      <Dialog
-        open={historial !== null}
+      <DialogoAnular
+        abierto={documentoAnular !== null}
         onOpenChange={(abierto) => {
-          if (!abierto) setHistorial(null);
+          if (!abierto) setDocumentoAnular(null);
         }}
-      >
-        <DialogContent className="sm:max-w-xl">
-          <DialogHeader>
-            <DialogTitle>
-              Historial de pagos · {historial?.numero ?? ""}
-            </DialogTitle>
-            <DialogDescription>
-              {historial
-                ? `${historial.tercero} · saldo ${formatearMoneda(historial.saldo, moneda)}`
-                : ""}
-            </DialogDescription>
-          </DialogHeader>
-
-          {pagosDelHistorial.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Este documento todavía no tiene pagos registrados.
-            </p>
-          ) : (
-            <ul className="divide-y divide-border">
-              {pagosDelHistorial.map((pago) => (
-                <li
-                  key={pago.id}
-                  className="flex items-center justify-between gap-3 py-2"
-                >
-                  <div className="flex min-w-0 flex-col">
-                    <span className="truncate text-sm font-medium text-foreground tabular-nums">
-                      {formatearMoneda(pago.monto, moneda)} ·{" "}
-                      {formatearFecha(pago.fechaPago)}
-                    </span>
-                    <span className="truncate text-xs text-muted-foreground">
-                      {pago.metodoPago} · {pago.cuenta}
-                      {pago.referencia === "" ? "" : ` · ${pago.referencia}`}
-                    </span>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <PillEstado
-                      estado={
-                        pago.estado === "cancelled" ? "anulada" : "saldada"
-                      }
-                    >
-                      {pago.estado === "cancelled" ? "Anulado" : "Activo"}
-                    </PillEstado>
-                    {pago.estado === "active" ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setHistorial(null);
-                          setPagoAnular(pago);
-                        }}
-                      >
-                        <IconBan className="size-4" />
-                        Anular
-                      </Button>
-                    ) : null}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </DialogContent>
-      </Dialog>
+        empresaId={empresaId}
+        tipo="documento"
+        referenciaId={documentoAnular?.id ?? null}
+        identificador={documentoAnular?.numero ?? ""}
+        onAnulado={() => router.refresh()}
+      />
 
       <DialogoAnular
         abierto={pagoAnular !== null}
