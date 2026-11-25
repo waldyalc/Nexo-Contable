@@ -64,6 +64,31 @@ test.describe("controles de UI", () => {
     ).toBeVisible();
   });
 
+  test("el buscador y «Mis empresas» mantienen separación en escritorio", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await autenticar(page, credencialesRequeridas());
+    await abrirShell(page, "/dashboard");
+
+    const cajaBuscador = await page
+      .getByRole("button", { name: "Abrir búsqueda global" })
+      .boundingBox();
+    const cajaEmpresas = await page
+      .getByRole("button", { name: "Mis empresas" })
+      .boundingBox();
+
+    if (cajaBuscador === null || cajaEmpresas === null) {
+      throw new Error("No se pudieron medir el buscador y «Mis empresas».");
+    }
+
+    const separacion = cajaEmpresas.x - (cajaBuscador.x + cajaBuscador.width);
+    expect(
+      separacion,
+      `el buscador queda pegado a «Mis empresas» (${separacion}px)`,
+    ).toBeGreaterThanOrEqual(16);
+  });
+
   test("no hay fechas ni selects nativos en las vistas contables", async ({
     page,
   }) => {
