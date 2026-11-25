@@ -5,6 +5,7 @@ import {
   IconChevronDown,
   IconDots,
   IconDownload,
+  IconEye,
   IconFileSpreadsheet,
   IconFileText,
   IconLoader2,
@@ -37,7 +38,7 @@ import {
   DialogoAnular,
   DialogoRegistrarPago,
 } from "@/components/operaciones/dialogos-cartera";
-import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
+import { DocumentoDetalleDialog } from "@/components/operaciones/documento-detalle-dialog";
 import { SelectCampo } from "@/components/select-campo";
 import { TercerosSheet } from "@/components/terceros/terceros-sheet";
 import { Button } from "@/components/ui/button";
@@ -63,6 +64,7 @@ import {
   formatearMoneda,
   formatearPeriodoMes,
 } from "@/lib/formato";
+import type { CargadorDocumentoDetalle } from "@/lib/operaciones/consultas";
 import type {
   CuentaOpcion,
   DocumentoAcreditable,
@@ -71,6 +73,7 @@ import type {
   SecuenciaNcfListado,
   TerceroListado,
 } from "@/lib/operaciones/tipos";
+import type { EmpresaReporte } from "@/lib/reportes/exportar/tipos";
 
 const OPCIONES_ESTADO = [
   { value: "contabilizada", label: "Contabilizada" },
@@ -85,6 +88,7 @@ function etiquetaEstado(documento: DocumentoListado): string {
 
 export interface GastosVistaProps {
   empresaId: string;
+  empresa: EmpresaReporte;
   documentos: readonly DocumentoListado[];
   terceros: readonly TerceroListado[];
   cuentas: readonly CuentaOpcion[];
@@ -100,6 +104,7 @@ export interface GastosVistaProps {
   cuentaCxpDefaultId?: string | null;
   periodoInicial: string;
   moneda: "DOP" | "USD";
+  cargarDetalleDocumento: CargadorDocumentoDetalle;
 }
 
 /**
@@ -109,6 +114,7 @@ export interface GastosVistaProps {
  */
 export function GastosVista({
   empresaId,
+  empresa,
   documentos,
   terceros,
   cuentas,
@@ -124,6 +130,7 @@ export function GastosVista({
   cuentaCxpDefaultId,
   periodoInicial,
   moneda,
+  cargarDetalleDocumento,
 }: GastosVistaProps) {
   const router = useRouter();
   const [mes, setMes] = useState(periodoInicial);
@@ -138,6 +145,8 @@ export function GastosVista({
     null,
   );
   const [anularDocumento, setAnularDocumento] =
+    useState<DocumentoListado | null>(null);
+  const [detalleDocumento, setDetalleDocumento] =
     useState<DocumentoListado | null>(null);
 
   const filtrados = useMemo(() => {
@@ -182,12 +191,6 @@ export function GastosVista({
 
   return (
     <>
-      <EncabezadoPagina
-        titulo="Gastos y compras"
-        descripcion="Comprobantes de compra con su NCF, retenciones y formato 606."
-        migas={[{ etiqueta: "Operaciones" }, { etiqueta: "Gastos y compras" }]}
-      />
-
       <TarjetaLista>
         <BarraLista
           titulo="Compras registradas"
@@ -364,6 +367,12 @@ export function GastosVista({
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-56">
                       <DropdownMenuItem
+                        onClick={() => setDetalleDocumento(documento)}
+                      >
+                        <IconEye className="size-4" />
+                        Ver detalle
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
                         disabled={
                           documento.estado !== "posted" || documento.saldo <= 0
                         }
@@ -413,6 +422,17 @@ export function GastosVista({
         terceros={terceros}
         cuentas={cuentas}
         tipoInicial="supplier"
+      />
+
+      <DocumentoDetalleDialog
+        abierto={detalleDocumento !== null}
+        onOpenChange={(abierto) => {
+          if (!abierto) setDetalleDocumento(null);
+        }}
+        empresaId={empresaId}
+        documento={detalleDocumento}
+        empresa={empresa}
+        cargarDetalle={cargarDetalleDocumento}
       />
 
       <DialogoRegistrarPago
