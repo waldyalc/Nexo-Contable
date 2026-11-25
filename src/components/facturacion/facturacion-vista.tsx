@@ -17,7 +17,7 @@ import {
   IconWallet,
 } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
-import { type FormEvent, useMemo, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import {
@@ -99,7 +99,12 @@ export interface FacturacionVistaProps {
   secuencias: readonly SecuenciaNcfListado[];
   documentosAcreditables: readonly DocumentoAcreditable[];
   tasaItbisBps: number;
-  cuentaCxcDefaultId: string | null;
+  cuentaItbisAdelantadoId?: string | null;
+  cuentaItbisPorPagarId?: string | null;
+  cuentaRetencionIsrId?: string | null;
+  cuentaRetencionItbisId?: string | null;
+  cuentaCxcDefaultId?: string | null;
+  cuentaCxpDefaultId?: string | null;
   periodoInicial: string;
   moneda: "DOP" | "USD";
 }
@@ -118,7 +123,12 @@ export function FacturacionVista({
   secuencias,
   documentosAcreditables,
   tasaItbisBps,
+  cuentaItbisAdelantadoId,
+  cuentaItbisPorPagarId,
+  cuentaRetencionIsrId,
+  cuentaRetencionItbisId,
   cuentaCxcDefaultId,
+  cuentaCxpDefaultId,
   periodoInicial,
   moneda,
 }: FacturacionVistaProps) {
@@ -407,7 +417,12 @@ export function FacturacionVista({
         secuencias={secuencias}
         documentosAcreditables={documentosAcreditables}
         tasaItbisBps={tasaItbisBps}
-        cuentaControlDefaultId={cuentaCxcDefaultId}
+        cuentaItbisAdelantadoId={cuentaItbisAdelantadoId}
+        cuentaItbisPorPagarId={cuentaItbisPorPagarId}
+        cuentaRetencionIsrId={cuentaRetencionIsrId}
+        cuentaRetencionItbisId={cuentaRetencionItbisId}
+        cuentaCxcDefaultId={cuentaCxcDefaultId}
+        cuentaCxpDefaultId={cuentaCxpDefaultId}
       />
 
       <TercerosSheet
@@ -487,6 +502,14 @@ function DialogoExportar607({
 }: DialogoExportar607Props) {
   const [periodo, setPeriodo] = useState(periodoInicial);
   const [generando, setGenerando] = useState<"excel" | "txt" | null>(null);
+
+  useEffect(() => {
+    setPeriodo(periodoInicial);
+  }, [periodoInicial]);
+
+  useEffect(() => {
+    if (abierto) setPeriodo(periodoInicial);
+  }, [abierto, periodoInicial]);
 
   async function descargar(formato: "excel" | "txt") {
     if (periodo === "") {
