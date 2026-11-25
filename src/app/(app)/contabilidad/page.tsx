@@ -1,5 +1,6 @@
 import { IconBook2, IconBuildingStore, IconLock } from "@tabler/icons-react";
 import Link from "next/link";
+import { Suspense } from "react";
 
 import type {
   AsientoListado,
@@ -7,11 +8,15 @@ import type {
   LineaAsiento,
   PeriodoContable,
 } from "@/app/(app)/contabilidad/actions";
+import {
+  EsqueletoPestanas,
+  EsqueletoTabla,
+} from "@/components/carga/esqueletos";
 import { ContabilidadVista } from "@/components/contabilidad/contabilidad-vista";
 import { TarjetaLista } from "@/components/listas/tarjeta-lista";
 import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { Button } from "@/components/ui/button";
-import { obtenerContextoApp } from "@/lib/auth/sesion";
+import { type EmpresaAsignada, obtenerContextoApp } from "@/lib/auth/sesion";
 import type { Moneda } from "@/lib/formato";
 import { consultarEnLotes } from "@/lib/supabase/lotes";
 import { paginarConsulta } from "@/lib/supabase/paginar";
@@ -108,42 +113,31 @@ function EstadoSinAcceso() {
   );
 }
 
-export default async function ContabilidadPage() {
-  const contexto = await obtenerContextoApp();
-  const empresa = contexto.empresaActiva;
-  const rol = contexto.esAdminGlobal ? "admin_global" : (empresa?.rol ?? null);
-  const autorizado = rol !== null && ROLES_CONTABLES.has(rol);
+interface ContabilidadContenidoProps {
+  empresa: EmpresaAsignada;
+  moneda: Moneda;
+}
 
-  const encabezado = (
-    <EncabezadoPagina
-      titulo="Contabilidad"
-      descripcion={
-        empresa
-          ? `${empresa.nombreComercial} · Catálogo, diario, mayor y períodos contables`
-          : "Catálogo de cuentas, libro diario, mayor y períodos contables."
-      }
-      migas={[{ etiqueta: "Operaciones" }, { etiqueta: "Contabilidad" }]}
-    />
+function EsqueletoContabilidad() {
+  return (
+    <div className="flex flex-col gap-3">
+      <EsqueletoPestanas cantidad={4} />
+      <EsqueletoTabla
+        titulo="Contabilidad"
+        descripcion="Cargando catálogo, asientos y períodos…"
+        acciones={1}
+        filtros={3}
+        filas={10}
+        columnas={6}
+      />
+    </div>
   );
+}
 
-  if (!empresa) {
-    return (
-      <>
-        {encabezado}
-        <EstadoSinEmpresa />
-      </>
-    );
-  }
-
-  if (!autorizado) {
-    return (
-      <>
-        {encabezado}
-        <EstadoSinAcceso />
-      </>
-    );
-  }
-
+async function ContabilidadContenido({
+  empresa,
+  moneda,
+}: ContabilidadContenidoProps) {
   const supabase = await createClient();
 
   const [cuentasFilas, asientosFilas, periodosFilas] = await Promise.all([
@@ -243,11 +237,8 @@ export default async function ContabilidadPage() {
     estado: fila.estado,
   }));
 
-  const moneda: Moneda = empresa.monedaFuncional === "USD" ? "USD" : "DOP";
-
   return (
     <>
-      {encabezado}
       <ContabilidadVista
         key={empresa.id}
         empresaNombre={empresa.nombreComercial}
@@ -263,6 +254,54 @@ export default async function ContabilidadPage() {
           {asientosFilas.error.message}
         </p>
       ) : null}
+    </>
+  );
+}
+
+export default async function ContabilidadPage() {
+  const contexto = await obtenerContextoApp();
+  const empresa = contexto.empresaActiva;
+  const rol = contexto.esAdminGlobal ? "admin_global" : (empresa?.rol ?? null);
+  const autorizado = rol !== null && ROLES_CONTABLES.has(rol);
+
+  const encabezado = (
+    <EncabezadoPagina
+      titulo="Contabilidad"
+      descripcion={
+        empresa
+          ? `${empresa.nombreComercial} · Catálogo, diario, mayor y períodos contables`
+          : "Catálogo de cuentas, libro diario, mayor y períodos contables."
+      }
+      migas={[{ etiqueta: "Operaciones" }, { etiqueta: "Contabilidad" }]}
+    />
+  );
+
+  if (!empresa) {
+    return (
+      <>
+        {encabezado}
+        <EstadoSinEmpresa />
+      </>
+    );
+  }
+
+  if (!autorizado) {
+    return (
+      <>
+        {encabezado}
+        <EstadoSinAcceso />
+      </>
+    );
+  }
+
+  const moneda: Moneda = empresa.monedaFuncional === "USD" ? "USD" : "DOP";
+
+  return (
+    <>
+      {encabezado}
+      <Suspense fallback={<EsqueletoContabilidad />}>
+        <ContabilidadContenido empresa={empresa} moneda={moneda} />
+      </Suspense>
     </>
   );
 }
