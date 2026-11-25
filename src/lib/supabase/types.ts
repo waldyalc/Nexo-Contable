@@ -569,6 +569,24 @@ export type Database = {
           saldo_actual: number;
         }>;
       };
+      reporte_cambios_patrimonio: {
+        Args: {
+          p_empresa_id: string;
+          p_desde: string;
+          p_hasta: string;
+        };
+        Returns: Array<{
+          tipo_fila: string;
+          cuenta_id: string | null;
+          codigo: string;
+          nombre: string;
+          saldo_inicial: number;
+          debitos: number;
+          creditos: number;
+          movimiento_neto: number;
+          saldo_final: number;
+        }>;
+      };
       reporte_dgii_606: {
         Args: {
           p_empresa_id: string;
