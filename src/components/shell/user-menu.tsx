@@ -1,6 +1,11 @@
 "use client";
 
-import { IconChevronDown, IconLogout } from "@tabler/icons-react";
+import {
+  IconChevronDown,
+  IconLogout,
+  IconMoon,
+  IconSun,
+} from "@tabler/icons-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
@@ -10,6 +15,7 @@ import {
   RUTAS_PERFIL_ADMIN,
   iniciales,
 } from "@/components/shell/navegacion";
+import { useTema } from "@/components/shell/tema";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,6 +40,7 @@ export function UserMenu({ contexto }: UserMenuProps) {
   const router = useRouter();
   const [abierto, setAbierto] = useState(false);
   const [saliendo, setSaliendo] = useState(false);
+  const { tema, cambiarTema } = useTema();
 
   const nombreVisible =
     contexto.perfil.nombre.trim() === ""
@@ -129,6 +136,42 @@ export function UserMenu({ contexto }: UserMenuProps) {
             );
           })}
         </nav>
+
+        <div className="border-t border-border px-4 py-3">
+          <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+            Tema
+          </p>
+          <div className="mt-2 flex gap-1 rounded-[10px] border border-border bg-muted/50 p-1">
+            <button
+              type="button"
+              aria-pressed={tema === "light"}
+              onClick={() => cambiarTema("light")}
+              className={cn(
+                "flex h-8 flex-1 items-center justify-center gap-1.5 rounded-[8px] text-sm font-medium transition-colors",
+                tema === "light"
+                  ? "bg-card text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <IconSun className="size-4 shrink-0" />
+              Claro
+            </button>
+            <button
+              type="button"
+              aria-pressed={tema === "dark"}
+              onClick={() => cambiarTema("dark")}
+              className={cn(
+                "flex h-8 flex-1 items-center justify-center gap-1.5 rounded-[8px] text-sm font-medium transition-colors",
+                tema === "dark"
+                  ? "bg-card text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <IconMoon className="size-4 shrink-0" />
+              Oscuro
+            </button>
+          </div>
+        </div>
 
         <div className="border-t border-border p-2">
           <Button
