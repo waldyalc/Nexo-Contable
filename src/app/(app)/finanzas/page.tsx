@@ -218,7 +218,7 @@ export default async function FinanzasPage() {
       titulo="Finanzas"
       descripcion={
         empresa
-          ? `${empresa.nombreComercial} · Estados financieros y exportación a Excel`
+          ? `${empresa.nombreComercial} · Estados financieros y reportes exportables`
           : "Estados financieros de la empresa activa."
       }
       migas={[{ etiqueta: "Operaciones" }, { etiqueta: "Finanzas" }]}
