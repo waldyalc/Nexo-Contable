@@ -1,12 +1,22 @@
 "use client";
 
 import { IconBan, IconLoader2, IconWallet } from "@tabler/icons-react";
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { DatePicker } from "@/components/date-picker";
 import { FormField } from "@/components/formularios/form-card";
 import { SelectCampo } from "@/components/select-campo";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -25,6 +35,58 @@ import {
   registrarPagoDocumentoAction,
 } from "@/lib/operaciones/pagos-actions";
 import type { CuentaOpcion, MetodoPagoOpcion } from "@/lib/operaciones/tipos";
+
+export function formularioTieneCambios<T extends object>(
+  actual: T,
+  inicial: T,
+): boolean {
+  const campos = Object.keys(inicial) as (keyof T)[];
+  return campos.some((campo) => actual[campo] !== inicial[campo]);
+}
+
+interface FormularioPago {
+  fechaPago: string;
+  monto: string;
+  metodoPago: string;
+  cuentaId: string;
+  referencia: string;
+}
+
+interface FormularioAnulacion {
+  fecha: string;
+  motivo: string;
+}
+
+interface DialogoConfirmarDescarteProps {
+  abierto: boolean;
+  onOpenChange: (abierto: boolean) => void;
+  onDescartar: () => void;
+}
+
+export function DialogoConfirmarDescarte({
+  abierto,
+  onOpenChange,
+  onDescartar,
+}: DialogoConfirmarDescarteProps) {
+  return (
+    <AlertDialog open={abierto} onOpenChange={onOpenChange}>
+      <AlertDialogContent size="sm">
+        <AlertDialogHeader>
+          <AlertDialogTitle>¿Descartar cambios?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Tienes cambios sin guardar. Si cierras ahora, se perderán.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Seguir editando</AlertDialogCancel>
+          <AlertDialogAction variant="destructive" onClick={onDescartar}>
+            Descartar
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
 
 export interface DocumentoPago {
   id: string;
@@ -65,16 +127,34 @@ export function DialogoRegistrarPago({
   const [referencia, setReferencia] = useState("");
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [formReferencia, setFormReferencia] = useState<FormularioPago | null>(
+    null,
+  );
+  const [confirmandoDescarte, setConfirmandoDescarte] = useState(false);
+  const enviandoRef = useRef(false);
 
   useEffect(() => {
-    if (!abierto) return;
-    setFechaPago(hoySantoDomingo());
-    setMonto(documento ? documento.saldo.toFixed(2) : "");
-    setMetodoPago(metodosPago[0]?.nombre ?? "");
-    setCuentaId(metodosPago[0]?.cuentaId ?? "");
-    setReferencia("");
+    if (!abierto) {
+      setConfirmandoDescarte(false);
+      return;
+    }
+
+    const inicial: FormularioPago = {
+      fechaPago: hoySantoDomingo(),
+      monto: documento ? documento.saldo.toFixed(2) : "",
+      metodoPago: metodosPago[0]?.nombre ?? "",
+      cuentaId: metodosPago[0]?.cuentaId ?? "",
+      referencia: "",
+    };
+
+    setFechaPago(inicial.fechaPago);
+    setMonto(inicial.monto);
+    setMetodoPago(inicial.metodoPago);
+    setCuentaId(inicial.cuentaId);
+    setReferencia(inicial.referencia);
+    setFormReferencia(inicial);
     setError(null);
-    setGuardando(false);
+    setGuardando(enviandoRef.current);
   }, [abierto, documento, metodosPago]);
 
   const opcionesMetodos = metodosPago.map((metodo) => ({
@@ -87,15 +167,51 @@ export function DialogoRegistrarPago({
     label: `${cuenta.codigo} · ${cuenta.nombre}`,
   }));
 
+  const estadoActual: FormularioPago = {
+    fechaPago,
+    monto,
+    metodoPago,
+    cuentaId,
+    referencia,
+  };
+  const hayCambios =
+    formReferencia !== null &&
+    formularioTieneCambios(estadoActual, formReferencia);
+
   function elegirMetodo(nombre: string) {
     setMetodoPago(nombre);
     const metodo = metodosPago.find((fila) => fila.nombre === nombre);
     if (metodo) setCuentaId(metodo.cuentaId);
   }
 
+  function solicitarCierre(
+    siguienteAbierto: boolean,
+    cancelarEvento?: () => void,
+  ) {
+    if (siguienteAbierto) {
+      onOpenChange(true);
+      return;
+    }
+    if (enviandoRef.current || guardando) {
+      cancelarEvento?.();
+      return;
+    }
+    if (hayCambios) {
+      cancelarEvento?.();
+      setConfirmandoDescarte(true);
+      return;
+    }
+    onOpenChange(false);
+  }
+
+  function descartarCambios() {
+    setConfirmandoDescarte(false);
+    onOpenChange(false);
+  }
+
   async function guardar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
-    if (guardando || documento === null) return;
+    if (enviandoRef.current || guardando || documento === null) return;
 
     const valor = aNumero(monto);
 
@@ -119,32 +235,42 @@ export function DialogoRegistrarPago({
     }
 
     setError(null);
+    enviandoRef.current = true;
     setGuardando(true);
 
-    const resultado = await registrarPagoDocumentoAction({
-      empresaId,
-      documentoId: documento.id,
-      fechaPago,
-      monto: valor,
-      metodoPago,
-      cuentaId,
-      referencia,
-    });
+    try {
+      const resultado = await registrarPagoDocumentoAction({
+        empresaId,
+        documentoId: documento.id,
+        fechaPago,
+        monto: valor,
+        metodoPago,
+        cuentaId,
+        referencia,
+      });
 
-    setGuardando(false);
+      if (!resultado.ok) {
+        setError(resultado.error);
+        return;
+      }
 
-    if (!resultado.ok) {
-      setError(resultado.error);
-      return;
+      toast.success(resultado.mensaje);
+      setFormReferencia(estadoActual);
+      onOpenChange(false);
+      onRegistrado();
+    } finally {
+      enviandoRef.current = false;
+      setGuardando(false);
     }
-
-    toast.success(resultado.mensaje);
-    onOpenChange(false);
-    onRegistrado();
   }
 
   return (
-    <Dialog open={abierto} onOpenChange={onOpenChange}>
+    <Dialog
+      open={abierto}
+      onOpenChange={(siguienteAbierto, detalles) =>
+        solicitarCierre(siguienteAbierto, () => detalles.cancel())
+      }
+    >
       <DialogContent className="sm:max-w-lg">
         <form className="flex flex-col gap-4" onSubmit={guardar} noValidate>
           <DialogHeader>
@@ -231,7 +357,7 @@ export function DialogoRegistrarPago({
               type="button"
               variant="outline"
               disabled={guardando}
-              onClick={() => onOpenChange(false)}
+              onClick={() => solicitarCierre(false)}
             >
               Cancelar
             </Button>
@@ -251,6 +377,11 @@ export function DialogoRegistrarPago({
           </DialogFooter>
         </form>
       </DialogContent>
+      <DialogoConfirmarDescarte
+        abierto={confirmandoDescarte}
+        onOpenChange={setConfirmandoDescarte}
+        onDescartar={descartarCambios}
+      />
     </Dialog>
   );
 }
@@ -279,18 +410,62 @@ export function DialogoAnular({
   const [motivo, setMotivo] = useState("");
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [formReferencia, setFormReferencia] =
+    useState<FormularioAnulacion | null>(null);
+  const [confirmandoDescarte, setConfirmandoDescarte] = useState(false);
+  const enviandoRef = useRef(false);
 
   useEffect(() => {
-    if (!abierto) return;
-    setFecha(hoySantoDomingo());
-    setMotivo("");
+    if (!abierto) {
+      setConfirmandoDescarte(false);
+      return;
+    }
+
+    const inicial: FormularioAnulacion = {
+      fecha: hoySantoDomingo(),
+      motivo: "",
+    };
+
+    setFecha(inicial.fecha);
+    setMotivo(inicial.motivo);
+    setFormReferencia(inicial);
     setError(null);
-    setGuardando(false);
+    setGuardando(enviandoRef.current);
   }, [abierto]);
+
+  const estadoActual: FormularioAnulacion = { fecha, motivo };
+  const hayCambios =
+    formReferencia !== null &&
+    formularioTieneCambios(estadoActual, formReferencia);
+
+  function solicitarCierre(
+    siguienteAbierto: boolean,
+    cancelarEvento?: () => void,
+  ) {
+    if (siguienteAbierto) {
+      onOpenChange(true);
+      return;
+    }
+    if (enviandoRef.current || guardando) {
+      cancelarEvento?.();
+      return;
+    }
+    if (hayCambios) {
+      cancelarEvento?.();
+      setConfirmandoDescarte(true);
+      return;
+    }
+    onOpenChange(false);
+  }
+
+  function descartarCambios() {
+    setConfirmandoDescarte(false);
+    onOpenChange(false);
+  }
 
   async function guardar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
-    if (guardando || referenciaId === null) return;
+    if (enviandoRef.current || guardando || referenciaId === null) return;
 
     if (motivo.trim().length < 3) {
       setError("Escribe el motivo de la anulación (mínimo 3 caracteres).");
@@ -298,37 +473,47 @@ export function DialogoAnular({
     }
 
     setError(null);
+    enviandoRef.current = true;
     setGuardando(true);
 
-    const resultado =
-      tipo === "pago"
-        ? await anularPagoDocumentoAction({
-            empresaId,
-            pagoId: referenciaId,
-            fechaAnulacion: fecha,
-            motivo: motivo.trim(),
-          })
-        : await anularDocumentoAction({
-            empresaId,
-            documentoId: referenciaId,
-            fechaAnulacion: fecha,
-            motivo: motivo.trim(),
-          });
+    try {
+      const resultado =
+        tipo === "pago"
+          ? await anularPagoDocumentoAction({
+              empresaId,
+              pagoId: referenciaId,
+              fechaAnulacion: fecha,
+              motivo: motivo.trim(),
+            })
+          : await anularDocumentoAction({
+              empresaId,
+              documentoId: referenciaId,
+              fechaAnulacion: fecha,
+              motivo: motivo.trim(),
+            });
 
-    setGuardando(false);
+      if (!resultado.ok) {
+        setError(resultado.error);
+        return;
+      }
 
-    if (!resultado.ok) {
-      setError(resultado.error);
-      return;
+      toast.success(resultado.mensaje);
+      setFormReferencia(estadoActual);
+      onOpenChange(false);
+      onAnulado();
+    } finally {
+      enviandoRef.current = false;
+      setGuardando(false);
     }
-
-    toast.success(resultado.mensaje);
-    onOpenChange(false);
-    onAnulado();
   }
 
   return (
-    <Dialog open={abierto} onOpenChange={onOpenChange}>
+    <Dialog
+      open={abierto}
+      onOpenChange={(siguienteAbierto, detalles) =>
+        solicitarCierre(siguienteAbierto, () => detalles.cancel())
+      }
+    >
       <DialogContent className="sm:max-w-lg">
         <form className="flex flex-col gap-4" onSubmit={guardar} noValidate>
           <DialogHeader>
@@ -370,7 +555,7 @@ export function DialogoAnular({
               type="button"
               variant="outline"
               disabled={guardando}
-              onClick={() => onOpenChange(false)}
+              onClick={() => solicitarCierre(false)}
             >
               Cancelar
             </Button>
@@ -394,6 +579,11 @@ export function DialogoAnular({
           </DialogFooter>
         </form>
       </DialogContent>
+      <DialogoConfirmarDescarte
+        abierto={confirmandoDescarte}
+        onOpenChange={setConfirmandoDescarte}
+        onDescartar={descartarCambios}
+      />
     </Dialog>
   );
 }
