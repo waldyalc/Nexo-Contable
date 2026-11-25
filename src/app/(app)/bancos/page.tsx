@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+
 import {
   BancosVista,
   type CuentaBancariaListado,
@@ -5,8 +7,18 @@ import {
   type MovimientoListado,
   type SesionListado,
 } from "@/components/bancos/bancos-vista";
+import {
+  EsqueletoPestanas,
+  EsqueletoTabla,
+  EsqueletoTarjetas,
+} from "@/components/carga/esqueletos";
 import { SinEmpresaActiva } from "@/components/comunes/sin-empresa";
-import { obtenerContextoApp } from "@/lib/auth/sesion";
+import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
+import {
+  type ContextoApp,
+  type EmpresaAsignada,
+  obtenerContextoApp,
+} from "@/lib/auth/sesion";
 import { cargarOpcionesCuentas } from "@/lib/datos/cuentas";
 import type { Moneda } from "@/lib/formato";
 import {
@@ -18,6 +30,8 @@ import {
 } from "@/lib/parametros";
 import { paginarConsulta } from "@/lib/supabase/paginar";
 import { createClient } from "@/lib/supabase/server";
+
+import { BotonActualizar } from "./boton-actualizar";
 
 export const metadata = {
   title: "Banco y conciliación · Nexo Contable",
@@ -65,29 +79,37 @@ interface SesionFila {
   cerrada_en: string | null;
 }
 
-export default async function BancosPage({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  const contexto = await obtenerContextoApp();
-  const empresa = contexto.empresaActiva;
+function EsqueletoDatosBancos() {
+  return (
+    <>
+      <EsqueletoTarjetas cantidad={3} className="xl:grid-cols-3" />
+      <EsqueletoPestanas cantidad={3} />
+      <EsqueletoTabla
+        titulo="Cuentas bancarias"
+        descripcion="Vincula cada cuenta con su cuenta contable de efectivo."
+        acciones={1}
+        columnas={6}
+        filas={8}
+      />
+    </>
+  );
+}
 
-  if (!empresa) {
-    return (
-      <SinEmpresaActiva descripcion="Selecciona o crea una empresa para administrar sus cuentas bancarias y conciliaciones." />
-    );
-  }
+interface SeccionBancosProps {
+  contexto: ContextoApp;
+  empresa: EmpresaAsignada;
+  filtroCuenta: string;
+  desde: string;
+  hasta: string;
+}
 
-  const params = await searchParams;
-  const cuentaParam = parametroUrl(params, "cuenta");
-  const desdeParam = parametroUrl(params, "desde");
-  const hastaParam = parametroUrl(params, "hasta");
-
-  const filtroCuenta = esUuid(cuentaParam) ? cuentaParam : "";
-  const desde = esFecha(desdeParam) ? desdeParam : "";
-  const hasta = esFecha(hastaParam) ? hastaParam : "";
-
+async function SeccionBancos({
+  contexto,
+  empresa,
+  filtroCuenta,
+  desde,
+  hasta,
+}: SeccionBancosProps) {
   const supabase = await createClient();
   const moneda: Moneda = empresa.monedaFuncional === "USD" ? "USD" : "DOP";
 
@@ -221,5 +243,49 @@ export default async function BancosPage({
       puedeGestionar={puedeGestionar}
       puedeOperar={puedeOperar}
     />
+  );
+}
+
+export default async function BancosPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const contexto = await obtenerContextoApp();
+  const empresa = contexto.empresaActiva;
+
+  if (!empresa) {
+    return (
+      <SinEmpresaActiva descripcion="Selecciona o crea una empresa para administrar sus cuentas bancarias y conciliaciones." />
+    );
+  }
+
+  const params = await searchParams;
+  const cuentaParam = parametroUrl(params, "cuenta");
+  const desdeParam = parametroUrl(params, "desde");
+  const hastaParam = parametroUrl(params, "hasta");
+
+  const filtroCuenta = esUuid(cuentaParam) ? cuentaParam : "";
+  const desde = esFecha(desdeParam) ? desdeParam : "";
+  const hasta = esFecha(hastaParam) ? hastaParam : "";
+
+  return (
+    <>
+      <EncabezadoPagina
+        titulo="Banco y conciliación"
+        descripcion="Cuentas bancarias, movimientos, importación de extractos y conciliación con el mayor contable."
+        migas={[{ etiqueta: "Operaciones" }, { etiqueta: "Banco" }]}
+        acciones={<BotonActualizar />}
+      />
+      <Suspense fallback={<EsqueletoDatosBancos />}>
+        <SeccionBancos
+          contexto={contexto}
+          empresa={empresa}
+          filtroCuenta={filtroCuenta}
+          desde={desde}
+          hasta={hasta}
+        />
+      </Suspense>
+    </>
   );
 }

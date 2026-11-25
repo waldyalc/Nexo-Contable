@@ -1,15 +1,29 @@
+import { Suspense } from "react";
+
+import {
+  EsqueletoPestanas,
+  EsqueletoTabla,
+  EsqueletoTarjetas,
+} from "@/components/carga/esqueletos";
 import { SinEmpresaActiva } from "@/components/comunes/sin-empresa";
 import {
   type ArticuloListado,
   InventarioVista,
   type MovimientoInventarioListado,
 } from "@/components/inventario/inventario-vista";
-import { obtenerContextoApp } from "@/lib/auth/sesion";
+import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
+import {
+  type ContextoApp,
+  type EmpresaAsignada,
+  obtenerContextoApp,
+} from "@/lib/auth/sesion";
 import { cargarOpcionesCuentas } from "@/lib/datos/cuentas";
 import type { Moneda } from "@/lib/formato";
 import { UUID_NULO, esUuid, parametroUrl } from "@/lib/parametros";
 import { paginarConsulta } from "@/lib/supabase/paginar";
 import { createClient } from "@/lib/supabase/server";
+
+import { BotonActualizar } from "./boton-actualizar";
 
 export const metadata = {
   title: "Inventario · Nexo Contable",
@@ -43,24 +57,33 @@ interface MovimientoFila {
   notas: string;
 }
 
-export default async function InventarioPage({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  const contexto = await obtenerContextoApp();
-  const empresa = contexto.empresaActiva;
+function EsqueletoDatosInventario() {
+  return (
+    <>
+      <EsqueletoTarjetas cantidad={3} className="xl:grid-cols-3" />
+      <EsqueletoPestanas cantidad={2} />
+      <EsqueletoTabla
+        titulo="Catálogo de artículos"
+        descripcion="Precio de venta y cuentas contables de inventario, costo e ingreso."
+        acciones={2}
+        columnas={7}
+        filas={10}
+      />
+    </>
+  );
+}
 
-  if (!empresa) {
-    return (
-      <SinEmpresaActiva descripcion="Selecciona o crea una empresa para administrar su inventario y kardex." />
-    );
-  }
+interface SeccionInventarioProps {
+  contexto: ContextoApp;
+  empresa: EmpresaAsignada;
+  filtroArticulo: string;
+}
 
-  const params = await searchParams;
-  const articuloParam = parametroUrl(params, "articulo");
-  const filtroArticulo = esUuid(articuloParam) ? articuloParam : "";
-
+async function SeccionInventario({
+  contexto,
+  empresa,
+  filtroArticulo,
+}: SeccionInventarioProps) {
   const supabase = await createClient();
   const moneda: Moneda = empresa.monedaFuncional === "USD" ? "USD" : "DOP";
 
@@ -150,5 +173,42 @@ export default async function InventarioPage({
       puedeGestionar={puedeGestionar}
       puedeOperar={puedeOperar}
     />
+  );
+}
+
+export default async function InventarioPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const contexto = await obtenerContextoApp();
+  const empresa = contexto.empresaActiva;
+
+  if (!empresa) {
+    return (
+      <SinEmpresaActiva descripcion="Selecciona o crea una empresa para administrar su inventario y kardex." />
+    );
+  }
+
+  const params = await searchParams;
+  const articuloParam = parametroUrl(params, "articulo");
+  const filtroArticulo = esUuid(articuloParam) ? articuloParam : "";
+
+  return (
+    <>
+      <EncabezadoPagina
+        titulo="Inventario"
+        descripcion="Artículos, costo promedio ponderado y kardex de movimientos."
+        migas={[{ etiqueta: "Operaciones" }, { etiqueta: "Inventario" }]}
+        acciones={<BotonActualizar />}
+      />
+      <Suspense fallback={<EsqueletoDatosInventario />}>
+        <SeccionInventario
+          contexto={contexto}
+          empresa={empresa}
+          filtroArticulo={filtroArticulo}
+        />
+      </Suspense>
+    </>
   );
 }

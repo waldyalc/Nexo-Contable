@@ -1,14 +1,28 @@
+import { Suspense } from "react";
+
+import {
+  EsqueletoPestanas,
+  EsqueletoTabla,
+  EsqueletoTarjetas,
+} from "@/components/carga/esqueletos";
 import { SinEmpresaActiva } from "@/components/comunes/sin-empresa";
 import {
   type CorridaNominaListado,
   type EmpleadoListado,
   NominaVista,
 } from "@/components/nomina/nomina-vista";
-import { obtenerContextoApp } from "@/lib/auth/sesion";
+import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
+import {
+  type ContextoApp,
+  type EmpresaAsignada,
+  obtenerContextoApp,
+} from "@/lib/auth/sesion";
 import { cargarOpcionesCuentas } from "@/lib/datos/cuentas";
 import type { Moneda } from "@/lib/formato";
 import { paginarConsulta } from "@/lib/supabase/paginar";
 import { createClient } from "@/lib/supabase/server";
+
+import { BotonActualizar } from "./boton-actualizar";
 
 export const metadata = {
   title: "Recursos humanos y nómina · Nexo Contable",
@@ -38,16 +52,28 @@ interface CorridaFila {
   estado: string;
 }
 
-export default async function NominaPage() {
-  const contexto = await obtenerContextoApp();
-  const empresa = contexto.empresaActiva;
+function EsqueletoDatosNomina() {
+  return (
+    <>
+      <EsqueletoTarjetas cantidad={3} className="xl:grid-cols-3" />
+      <EsqueletoPestanas cantidad={2} />
+      <EsqueletoTabla
+        titulo="Empleados"
+        descripcion="Datos laborales y salario mensual usado en la nómina."
+        acciones={1}
+        columnas={6}
+        filas={10}
+      />
+    </>
+  );
+}
 
-  if (!empresa) {
-    return (
-      <SinEmpresaActiva descripcion="Selecciona o crea una empresa para administrar sus empleados y corridas de nómina." />
-    );
-  }
+interface SeccionNominaProps {
+  contexto: ContextoApp;
+  empresa: EmpresaAsignada;
+}
 
+async function SeccionNomina({ contexto, empresa }: SeccionNominaProps) {
   const supabase = await createClient();
   const moneda: Moneda = empresa.monedaFuncional === "USD" ? "USD" : "DOP";
 
@@ -121,5 +147,30 @@ export default async function NominaPage() {
       opcionesCuentas={opcionesCuentas}
       puedeGestionar={puedeGestionar}
     />
+  );
+}
+
+export default async function NominaPage() {
+  const contexto = await obtenerContextoApp();
+  const empresa = contexto.empresaActiva;
+
+  if (!empresa) {
+    return (
+      <SinEmpresaActiva descripcion="Selecciona o crea una empresa para administrar sus empleados y corridas de nómina." />
+    );
+  }
+
+  return (
+    <>
+      <EncabezadoPagina
+        titulo="Recursos humanos y nómina"
+        descripcion="Empleados, corridas de nómina y su contabilización con asiento automático."
+        migas={[{ etiqueta: "Operaciones" }, { etiqueta: "Recursos humanos" }]}
+        acciones={<BotonActualizar />}
+      />
+      <Suspense fallback={<EsqueletoDatosNomina />}>
+        <SeccionNomina contexto={contexto} empresa={empresa} />
+      </Suspense>
+    </>
   );
 }
