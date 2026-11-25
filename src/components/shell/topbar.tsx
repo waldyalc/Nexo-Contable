@@ -19,7 +19,7 @@ export interface TopbarProps {
  */
 export function Topbar({ contexto, onAbrirMenu, onAbrirPaleta }: TopbarProps) {
   return (
-    <header className="nexo-shell-topbar sticky top-0 z-30 grid h-[68px] shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-2 border-b border-border bg-card/85 px-4 backdrop-blur-md sm:gap-3 lg:px-6 print:hidden">
+    <header className="nexo-shell-topbar sticky top-0 z-30 grid h-[68px] shrink-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 border-b border-border bg-card/85 px-4 backdrop-blur-md sm:gap-3 lg:px-6 print:hidden">
       <div className="flex min-w-0 items-center gap-2">
         <Button
           type="button"

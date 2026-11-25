@@ -130,7 +130,7 @@ export function CompanySwitcher({
           <Button
             type="button"
             variant="outline"
-            className="h-9 max-w-[260px] gap-2 border-border bg-card px-2"
+            className="h-9 w-full max-w-[260px] min-w-0 gap-2 border-border bg-card px-2"
             aria-label="Mis empresas"
           />
         }
@@ -142,7 +142,7 @@ export function CompanySwitcher({
             <IconBuilding className="size-4" />
           </span>
         )}
-        <span className="max-w-[180px] truncate text-sm font-medium">
+        <span className="min-w-0 max-w-[180px] truncate text-sm font-medium">
           {empresaActiva?.nombreComercial ?? "Mis empresas"}
         </span>
         <IconChevronDown className="size-4 shrink-0 text-muted-foreground" />
