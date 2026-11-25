@@ -110,7 +110,13 @@ export function CompanySwitcher({
       toast.success("Empresa activa actualizada", {
         description: empresa.nombreComercial,
       });
-      router.refresh();
+      // Recarga completa del documento (como Alegra): descarta de forma
+      // determinista todo estado cliente, portales y escuchas de la empresa
+      // anterior — un refresco RSC deja portales a medio desmontar y la
+      // pantalla dejaba de responder a clics hasta un F5 manual.
+      window.setTimeout(() => {
+        window.location.reload();
+      }, 450);
     } catch {
       toast.error("No pudimos cambiar de empresa. Revisa tu conexión.");
     } finally {

@@ -177,6 +177,10 @@ export const obtenerContextoApp = cache(async (): Promise<ContextoApp> => {
 
     if (!esAdminGlobal && !asignacion) continue;
 
+    // Las empresas inactivas no se pueden elegir en «Mis empresas»: el
+    // sistema nunca las borra (auditoría append-only), se desactivan.
+    if (empresa.estado === "inactive") continue;
+
     empresas.push({
       id: empresa.id,
       nombreComercial: empresa.nombre_comercial,
