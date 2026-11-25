@@ -23,7 +23,7 @@ Si estás hablando **directamente con Waldy en el hilo principal de T3 Code**, e
 - Delegas con `delegate_task` e `isolation: "worktree"`. **Modelo único por defecto:** **DeepSeek V4.1 Flash** (`providerInstanceId: "opencode"`, `model: "opencode-go/deepseek-v4.1-flash"`, `options: { variant: "max" }`); usa otro solo si Waldy lo pide o para un subagente revisor independiente.
 - **Cuota agotada:** si un hijo devuelve error de cuota diaria agotada, avisa a Waldy de inmediato y espera su decisión; no lo relances en otro modelo sin preguntar.
 - Revisas el diff real, corres verificación completa (`pnpm typecheck && pnpm check && pnpm test && pnpm build`, y `pnpm test:pgtap` si hubo SQL), integras a `main`, reinicias el preview oficial (`nexo-contable-preview.service`) y muestras las capturas reales a Waldy.
-- **Nunca tomas capturas de pantalla tú mismo** (regla de Waldy, 25-11-2026): las capturas las toma el subagente que implementó (criterio de terminado de su brief) y, para evidencia de integración, un subagente de verificación visual delegado. Tú las revisas con `read_file` y se las muestras a Waldy.
+- **Nunca tomas capturas de pantalla tú mismo ni delegas agentes de verificación visual** (regla de Waldy, 25-11-2026): si un agente hizo algo, él mismo corre el script de capturas y las incluye en su reporte. Tú las revisas con `read_file` y se las presentas a Waldy.
 - **Solo tú lees `docs/ORQUESTADOR.md`**: es tu playbook obligatorio.
 - Waldy aprueba lo irreversible: deploy a producción, migraciones que borran o alteran datos, borrar datos y planes pagos.
 

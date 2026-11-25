@@ -28,20 +28,19 @@ Tu trabajo principal es **dividir el trabajo, delegarlo en worktrees limpios, re
    ```bash
    systemctl restart nexo-contable-preview.service
    ```
-   Las capturas ya vienen tomadas por los subagentes en sus briefs; si falta evidencia de la integración en `main`, **delega un subagente de verificación visual** (ver §2) — el Orquestador nunca toma capturas él mismo.
+   Las capturas ya vienen tomadas por el propio subagente que hizo el trabajo (criterio de terminado de su brief, ver §2); el Orquestador nunca toma capturas él mismo.
 8. **Podar worktrees y ramas viejas.** Tras integrar un bloque, limpia ramas y worktrees ya fusionados para no llenar el disco del VPS (`git branch -d ...`, `git worktree prune`, `git fetch --prune`).
 
 ---
 
-## 2. Verificación visual obligatoria (Regla de Waldy) — las capturas las toman los subagentes, NUNCA el Orquestador
+## 2. Verificación visual obligatoria (Regla de Waldy) — quien hace el trabajo toma las capturas, NUNCA el Orquestador
 
-**Regla de Waldy (25-11-2026):** el Orquestador no toma capturas de pantalla. Las toma **el propio subagente que implementó** (criterio de terminado de su brief), igual que en Medoxigas Contabilidad. El Orquestador revisa el diff, corre los checks, reinicia el preview y **le muestra las capturas a Waldy, que es quien verifica visualmente y decide**. "Listo" sin captura no está listo.
+**Regla de Waldy (25-11-2026):** si un agente hizo algo, **él mismo** corre el script de capturas (`pnpm captura` / `scripts/captura-todas.ts`) y las incluye embebidas en su reporte al Orquestador. El Orquestador se las presenta a Waldy. Eso es lo que hay que hacer y punto — no hay agentes de verificación visual aparte ni capturas tomadas por el Orquestador.
 
-1. El brief de toda tarea de UI exige como criterio de terminado: capturas reales con Playwright (`pnpm captura`) del resultado funcionando — desktop, móvil y modo oscuro cuando aplique — embebidas en el reporte del subagente.
-2. Para la evidencia de la integración en `main` (suite completa, claro/oscuro), el Orquestador **delega un subagente de verificación visual** cuya única tarea es correr `scripts/captura-todas.ts` y las capturas oscuras contra el preview oficial (`http://127.0.0.1:3020`), inspeccionar los PNG y reportarlos embebidos. No escribe código de la app.
-3. El Orquestador abre los PNG reportados con `read_file` para detectar defectos visuales (desbordes móviles, botones partidos, estados vacíos descentrados, textos cortados) y **embebe las capturas en su respuesta a Waldy** usando sintaxis Markdown con ruta absoluta (`![Descripción](/root/NEXO-CONTABLE/.capturas/...)`).
-4. E2E y demás checks sí los corre el Orquestador como verificación estructural: `E2E_BASE_URL=http://127.0.0.1:3020 pnpm test:e2e`.
-5. Las capturas viven en `.capturas/` (ignorado por git) — jamás se commitean al repositorio público.
+1. El brief de toda tarea exige como criterio de terminado: el propio subagente corre el script de capturas contra su preview de trabajo del resultado funcionando — desktop, móvil y modo oscuro cuando aplique — y embebe los PNG en su reporte.
+2. El Orquestador abre los PNG reportados con `read_file` para detectar defectos visuales (desbordes móviles, botones partidos, estados vacíos descentrados, textos cortados) y **embebe las capturas en su respuesta a Waldy** usando sintaxis Markdown con ruta absoluta (`![Descripción](/root/NEXO-CONTABLE/.capturas/...)`).
+3. E2E y demás checks sí los corre el Orquestador como verificación estructural: `E2E_BASE_URL=http://127.0.0.1:3020 pnpm test:e2e`.
+4. Las capturas viven en `.capturas/` (ignorado por git) — jamás se commitean al repositorio público.
 
 ---
 
@@ -101,7 +100,7 @@ Haz el trabajo tú mismo: NO lances subagentes, NO hagas git push ni merge a mai
 - [ ] Diff revisado archivo por archivo (sin datos privados ni archivos ajenos).
 - [ ] `pnpm typecheck`, `pnpm check`, `pnpm test`, `pnpm build` (y `pnpm test:pgtap` si hubo SQL) en verde en `main`.
 - [ ] Preview `nexo-contable-preview.service` (puerto `3020`) reiniciado y respondiendo `200`.
-- [ ] Capturas tomadas **por subagentes** (briefs + agente de verificación visual delegado), inspeccionadas por el Orquestador y mostradas a Waldy.
+- [ ] Capturas tomadas **por el propio subagente que hizo cada trabajo**, inspeccionadas por el Orquestador y mostradas a Waldy.
 - [ ] `E2E_BASE_URL=http://127.0.0.1:3020 pnpm test:e2e` en verde.
 - [ ] `HANDOFF.md` actualizado y `git push origin main` limpio.
 - [ ] Worktrees y ramas temporales podados (`git worktree prune && git fetch --prune`).
