@@ -26,9 +26,18 @@ export const metadata: Metadata = {
     "Sistema de contabilidad multi-empresa para República Dominicana",
 };
 
+const SCRIPT_TEMA = `(function(){try{var clave='nexo-tema';var tema=localStorage.getItem(clave);var oscuro=tema==='dark'||(tema!=='light'&&window.matchMedia('(prefers-color-scheme: dark)').matches);var raiz=document.documentElement;raiz.classList.toggle('dark',oscuro);raiz.style.colorScheme=oscuro?'dark':'light';}catch(error){}})();`;
+
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="es" className={`${dmSans.variable} ${manrope.variable}`}>
+    <html
+      lang="es"
+      className={`${dmSans.variable} ${manrope.variable}`}
+      suppressHydrationWarning
+    >
+      <head>
+        <script id="tema-nexo">{SCRIPT_TEMA}</script>
+      </head>
       <body>
         {children}
         <Toaster position="top-right" />
