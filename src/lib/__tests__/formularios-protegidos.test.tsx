@@ -11,20 +11,43 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { DialogoAsientoManual } from "@/components/contabilidad/diario-asientos-tab";
 import { DocumentoFormDialog } from "@/components/gastos/documento-form-dialog";
 import {
   DialogoAnular,
   DialogoRegistrarPago,
   formularioTieneCambios,
 } from "@/components/operaciones/dialogos-cartera";
+import { TercerosSheet } from "@/components/terceros/terceros-sheet";
 import type { ResultadoOperacion } from "@/lib/operaciones/tipos";
 
 const acciones = vi.hoisted(() => ({
   anularDocumento: vi.fn(),
   anularPago: vi.fn(),
+  contabilizarAsiento: vi.fn(),
+  crearAsiento: vi.fn(),
   emitirCompra: vi.fn(),
   emitirVenta: vi.fn(),
+  guardarTercero: vi.fn(),
+  refrescar: vi.fn(),
   registrarPago: vi.fn(),
+  revertirAsiento: vi.fn(),
+  toggleTercero: vi.fn(),
+}));
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh: acciones.refrescar }),
+}));
+
+vi.mock("@/app/(app)/contabilidad/actions", () => ({
+  contabilizarAsientoAction: acciones.contabilizarAsiento,
+  crearAsientoManualAction: acciones.crearAsiento,
+  revertirAsientoAction: acciones.revertirAsiento,
+}));
+
+vi.mock("@/app/(app)/gastos/terceros-actions", () => ({
+  guardarTerceroAction: acciones.guardarTercero,
+  toggleTerceroActivoAction: acciones.toggleTercero,
 }));
 
 vi.mock("@/lib/operaciones/pagos-actions", () => ({
@@ -63,6 +86,35 @@ const CUENTAS = [
     codigo: "1101",
     nombre: "Caja general",
     clasificacion: "asset",
+  },
+];
+
+const CUENTAS_CONTABLES = [
+  {
+    id: "bb2ee5cf-9e64-4c35-a2bb-cf16c6848be5",
+    codigo: "1101",
+    nombre: "Caja general",
+    padreId: null,
+    clasificacion: "asset",
+    naturaleza: "debit",
+    nivel: 1,
+    esAgrupacion: false,
+    activa: true,
+    esEquivalenteEfectivo: true,
+    categoriaFlujoEfectivo: "operating",
+  },
+  {
+    id: "f7060e15-c9f7-46b6-9e2d-1b593d3093e3",
+    codigo: "4101",
+    nombre: "Ingresos por servicios",
+    padreId: null,
+    clasificacion: "income",
+    naturaleza: "credit",
+    nivel: 1,
+    esAgrupacion: false,
+    activa: true,
+    esEquivalenteEfectivo: false,
+    categoriaFlujoEfectivo: "",
   },
 ];
 
@@ -150,6 +202,31 @@ function renderizarDocumento(onOpenChange = vi.fn()) {
   return { onOpenChange };
 }
 
+function renderizarAsiento(onOpenChange = vi.fn()) {
+  render(
+    <DialogoAsientoManual
+      abierto
+      onOpenChange={onOpenChange}
+      cuentas={CUENTAS_CONTABLES}
+    />,
+  );
+  return { onOpenChange };
+}
+
+function renderizarTerceros(onOpenChange = vi.fn()) {
+  render(
+    <TercerosSheet
+      abierto
+      onOpenChange={onOpenChange}
+      empresaId="44d26251-f326-45c1-9136-30d58691a718"
+      terceros={TERCEROS}
+      cuentas={CUENTAS}
+      tipoInicial="supplier"
+    />,
+  );
+  return { onOpenChange };
+}
+
 function campoDocumento(id: string): HTMLInputElement {
   const campo = document.getElementById(id);
   if (!(campo instanceof HTMLInputElement)) {
@@ -164,6 +241,21 @@ function campoConcepto(): HTMLInputElement {
 
 async function elegirEnCombobox(id: string, etiqueta: string) {
   const campo = campoDocumento(id);
+  fireEvent.mouseDown(campo);
+  fireEvent.change(campo, { target: { value: etiqueta } });
+  fireEvent.click(await screen.findByRole("option", { name: etiqueta }));
+}
+
+function campoPorIndice(etiqueta: string, indice: number): HTMLInputElement {
+  const campo = screen.getAllByLabelText(etiqueta)[indice];
+  if (!(campo instanceof HTMLInputElement)) {
+    throw new Error(`La prueba no encontró ${etiqueta} #${indice}`);
+  }
+  return campo;
+}
+
+async function elegirCuentaAsiento(indice: number, etiqueta: string) {
+  const campo = campoPorIndice("Cuenta contable", indice);
   fireEvent.mouseDown(campo);
   fireEvent.change(campo, { target: { value: etiqueta } });
   fireEvent.click(await screen.findByRole("option", { name: etiqueta }));
@@ -223,6 +315,10 @@ describe("formularios operativos protegidos", () => {
     acciones.anularPago.mockReset();
     acciones.emitirCompra.mockReset();
     acciones.emitirVenta.mockReset();
+    acciones.crearAsiento.mockReset();
+    acciones.guardarTercero.mockReset();
+    acciones.toggleTercero.mockReset();
+    acciones.refrescar.mockReset();
   });
 
   afterEach(() => {
@@ -450,6 +546,188 @@ describe("formularios operativos protegidos", () => {
     );
     expect(protegido.onAnulado).toHaveBeenCalledTimes(1);
   });
+
+  it("DialogoAsientoManual cierra limpio y confirma cambios antes de descartarlos", async () => {
+    const limpio = renderizarAsiento();
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+    expect(limpio.onOpenChange).toHaveBeenCalledWith(false);
+    expect(screen.queryByText("¿Descartar cambios?")).toBeNull();
+
+    cleanup();
+
+    const sucio = renderizarAsiento();
+    fireEvent.change(campoDocumento("asiento-referencia"), {
+      target: { value: "AJ-2026-001" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+
+    expect(await screen.findByText("¿Descartar cambios?")).toBeTruthy();
+    expect(sucio.onOpenChange).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Seguir editando" }));
+    await waitFor(() =>
+      expect(screen.queryByText("¿Descartar cambios?")).toBeNull(),
+    );
+    expect(campoDocumento("asiento-referencia").value).toBe("AJ-2026-001");
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(await screen.findByText("¿Descartar cambios?")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Descartar" }));
+    expect(sucio.onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  it("DialogoAsientoManual ignora contabilizaciones repetidas en curso", async () => {
+    const asientoPendiente: {
+      resolver: ((resultado: ResultadoOperacion) => void) | null;
+    } = { resolver: null };
+    acciones.crearAsiento.mockImplementation(
+      () =>
+        new Promise<ResultadoOperacion>((resolver) => {
+          asientoPendiente.resolver = resolver;
+        }),
+    );
+
+    const protegido = renderizarAsiento();
+    fireEvent.change(campoDocumento("asiento-descripcion"), {
+      target: { value: "Ajuste de prueba" },
+    });
+    await elegirCuentaAsiento(0, "1101 · Caja general");
+    await elegirCuentaAsiento(1, "4101 · Ingresos por servicios");
+    fireEvent.change(campoPorIndice("Débito", 0), {
+      target: { value: "100.00" },
+    });
+    fireEvent.change(campoPorIndice("Crédito", 1), {
+      target: { value: "100.00" },
+    });
+
+    const formulario = campoDocumento("asiento-descripcion").form;
+    if (!(formulario instanceof HTMLFormElement)) {
+      throw new Error("La prueba no encontró el formulario del asiento");
+    }
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Contabilizar" }),
+      ).toHaveProperty("disabled", false),
+    );
+
+    fireEvent.submit(formulario);
+    fireEvent.submit(formulario);
+    fireEvent.submit(formulario);
+
+    expect(acciones.crearAsiento).toHaveBeenCalledTimes(1);
+    expect(
+      screen.getByRole("button", { name: "Contabilizando…" }),
+    ).toHaveProperty("disabled", true);
+
+    exigirValor(
+      asientoPendiente.resolver,
+      "La creación del asiento no quedó pendiente",
+    )({
+      ok: true,
+      mensaje: "Asiento contabilizado.",
+    });
+
+    await waitFor(() =>
+      expect(protegido.onOpenChange).toHaveBeenCalledWith(false),
+    );
+    expect(screen.queryByText("¿Descartar cambios?")).toBeNull();
+  });
+
+  it("TercerosSheet confirma antes de cancelar un formulario con cambios", async () => {
+    const protegido = renderizarTerceros();
+
+    fireEvent.click(screen.getByRole("button", { name: "Nuevo tercero" }));
+    fireEvent.change(campoDocumento("tercero-nombre"), {
+      target: { value: "Proveedor digitado" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+
+    expect(await screen.findByText("¿Descartar cambios?")).toBeTruthy();
+    expect(protegido.onOpenChange).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Seguir editando" }));
+    await waitFor(() =>
+      expect(screen.queryByText("¿Descartar cambios?")).toBeNull(),
+    );
+    expect(campoDocumento("tercero-nombre").value).toBe("Proveedor digitado");
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+    expect(await screen.findByText("¿Descartar cambios?")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Descartar" }));
+
+    expect(
+      await screen.findByRole("button", { name: "Nuevo tercero" }),
+    ).toBeTruthy();
+    expect(protegido.onOpenChange).not.toHaveBeenCalled();
+  });
+
+  it("TercerosSheet intercepta la X del panel cuando el formulario está sucio", async () => {
+    const protegido = renderizarTerceros();
+
+    fireEvent.click(screen.getByRole("button", { name: "Nuevo tercero" }));
+    fireEvent.change(campoDocumento("tercero-nombre"), {
+      target: { value: "Proveedor digitado" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Cerrar" }));
+
+    expect(await screen.findByText("¿Descartar cambios?")).toBeTruthy();
+    expect(protegido.onOpenChange).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Descartar" }));
+    expect(protegido.onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  it("TercerosSheet ignora guardados repetidos mientras la acción sigue en curso", async () => {
+    const guardadoPendiente: {
+      resolver:
+        | ((resultado: ResultadoOperacion<{ id: string }>) => void)
+        | null;
+    } = { resolver: null };
+    acciones.guardarTercero.mockImplementation(
+      () =>
+        new Promise<ResultadoOperacion<{ id: string }>>((resolver) => {
+          guardadoPendiente.resolver = resolver;
+        }),
+    );
+
+    renderizarTerceros();
+    fireEvent.click(screen.getByRole("button", { name: "Nuevo tercero" }));
+    fireEvent.change(campoDocumento("tercero-nombre"), {
+      target: { value: "Proveedor digitado" },
+    });
+
+    const formulario = campoDocumento("tercero-nombre").form;
+    if (!(formulario instanceof HTMLFormElement)) {
+      throw new Error("La prueba no encontró el formulario del tercero");
+    }
+
+    fireEvent.submit(formulario);
+    fireEvent.submit(formulario);
+    fireEvent.submit(formulario);
+
+    expect(acciones.guardarTercero).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("button", { name: "Guardando…" })).toHaveProperty(
+      "disabled",
+      true,
+    );
+
+    exigirValor(
+      guardadoPendiente.resolver,
+      "El guardado del tercero no quedó pendiente",
+    )({
+      ok: true,
+      mensaje: "Tercero creado.",
+      datos: { id: TERCEROS[0]?.id ?? "" },
+    });
+
+    expect(
+      await screen.findByRole("button", { name: "Nuevo tercero" }),
+    ).toBeTruthy();
+    expect(acciones.refrescar).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText("¿Descartar cambios?")).toBeNull();
+  });
 });
 
 describe("candado de cableado de formularios protegidos", () => {
@@ -479,5 +757,33 @@ describe("candado de cableado de formularios protegidos", () => {
     expect(contenido).toContain("Tienes cambios sin guardar");
     expect(contenido).toContain("Seguir editando");
     expect(contenido).toContain("Descartar");
+  });
+
+  it("DialogoAsientoManual compara contra la foto inicial, intercepta el cierre y usa un candado ref", () => {
+    const contenido = leer(
+      "src/components/contabilidad/diario-asientos-tab.tsx",
+    );
+
+    expect(contenido).toContain("firmaLineasAsiento");
+    expect(contenido).toContain(
+      "formularioTieneCambios(estadoActual, formReferencia)",
+    );
+    expect(contenido).toContain("detalles.cancel()");
+    expect(contenido).toContain("enviandoRef.current = true");
+    expect(contenido).toContain("enviandoRef.current = false");
+    expect(contenido).toContain("DialogoConfirmarDescarte");
+    expect(contenido).toContain("solicitarCierre(false)");
+  });
+
+  it("TercerosSheet compara contra la foto inicial, intercepta el cierre y usa un candado ref", () => {
+    const contenido = leer("src/components/terceros/terceros-sheet.tsx");
+
+    expect(contenido).toContain("formularioTieneCambios(form, formReferencia)");
+    expect(contenido).toContain("detalles.cancel()");
+    expect(contenido).toContain("enviandoRef.current = true");
+    expect(contenido).toContain("enviandoRef.current = false");
+    expect(contenido).toContain("<DialogoConfirmarDescarte");
+    expect(contenido).toContain("solicitarCancelacionFormulario");
+    expect(contenido).toContain('setDescartePendiente("cerrar-sheet")');
   });
 });
