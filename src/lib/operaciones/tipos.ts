@@ -65,11 +65,13 @@ export interface DocumentoListado {
   concepto: string;
   subtotal: number;
   impuesto: number;
+  retenciones: number;
   total: number;
   pagado: number;
   saldo: number;
   estado: EstadoDocumento;
   estadoCobro: EstadoCobro;
+  documentoAcreditadoId: string | null;
 }
 
 export interface PagoListado {

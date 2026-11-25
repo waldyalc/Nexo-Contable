@@ -78,6 +78,7 @@ interface DocumentoFila {
   concepto: string;
   subtotal: number;
   impuesto: number;
+  retenciones: number;
   total: number;
   estado: string;
   documento_acreditado_id: string | null;
@@ -525,7 +526,7 @@ export async function cargarDocumentos(
       const { data, error } = await supabase
         .from("documentos_financieros")
         .select(
-          "id, tipo, numero, ncf, tipo_ncf, tercero_id, fecha_emision, fecha_vencimiento, concepto, subtotal, impuesto, total, estado, documento_acreditado_id",
+          "id, tipo, numero, ncf, tipo_ncf, tercero_id, fecha_emision, fecha_vencimiento, concepto, subtotal, impuesto, retenciones, total, estado, documento_acreditado_id",
         )
         .eq("empresa_id", empresaId)
         .in("tipo", [...tipos])
@@ -585,11 +586,13 @@ export async function cargarDocumentos(
       concepto: fila.concepto,
       subtotal: Number(fila.subtotal),
       impuesto: Number(fila.impuesto),
+      retenciones: Number(fila.retenciones),
       total,
       pagado,
       saldo,
       estado,
       estadoCobro: estadoCobro(saldo, fila.fecha_vencimiento, estado),
+      documentoAcreditadoId: fila.documento_acreditado_id,
     };
   });
 

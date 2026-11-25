@@ -1,10 +1,7 @@
 import { IconClipboardList } from "@tabler/icons-react";
 import { Suspense } from "react";
 
-import {
-  EsqueletoTabla,
-  EsqueletoTarjetas,
-} from "@/components/carga/esqueletos";
+import { EsqueletoTabla } from "@/components/carga/esqueletos";
 import { CarteraVista } from "@/components/cartera/cartera-vista";
 import { TarjetaLista } from "@/components/listas/tarjeta-lista";
 import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
@@ -12,12 +9,15 @@ import { obtenerContextoApp } from "@/lib/auth/sesion";
 import { hoySantoDomingo } from "@/lib/formato";
 import {
   cargarAntiguedad,
-  cargarCuentas,
+  cargarConfiguracionFiscal,
   cargarDocumentos,
   cargarMetodosPago,
+  cargarSecuenciasNcf,
   cargarTerceros,
 } from "@/lib/operaciones/consultas";
-import type { PagoListado } from "@/lib/operaciones/tipos";
+import type { DocumentoAcreditable } from "@/lib/operaciones/tipos";
+
+import { cargarDocumentoDetalleGastosAction } from "../gastos/documento-detalle-action";
 
 export const metadata = {
   title: "Cuentas por pagar · Nexo Contable",
@@ -36,15 +36,11 @@ function fechaCorteValida(valor: string | string[] | undefined): string {
 function EsqueletoCartera() {
   return (
     <>
-      <EsqueletoTarjetas
-        cantidad={6}
-        className="sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6"
-      />
       <EsqueletoTabla
-        titulo="Antigüedad de saldos"
-        descripcion="Cargando documentos por pagar…"
-        acciones={1}
-        filtros={1}
+        titulo="Facturas proveedor"
+        descripcion="Cargando el ciclo de cuentas por pagar…"
+        acciones={4}
+        filtros={3}
         filas={8}
         columnas={8}
       />
@@ -63,8 +59,7 @@ function SinEmpresa() {
           Sin empresa activa
         </h2>
         <p className="max-w-md text-sm text-muted-foreground">
-          Selecciona una empresa para ver la antigüedad de sus cuentas por
-          pagar.
+          Selecciona una empresa para ver el ciclo de sus cuentas por pagar.
         </p>
       </div>
     </TarjetaLista>
@@ -80,7 +75,7 @@ export default function CuentasPorPagarPage({
     <>
       <EncabezadoPagina
         titulo="Cuentas por pagar"
-        descripcion="Saldos de proveedores por antigüedad, pagos y anulaciones por reverso."
+        descripcion="Facturas proveedor, suplidores, notas de crédito, pagos y antigüedad."
         migas={[{ etiqueta: "Operaciones" }, { etiqueta: "Cuentas por pagar" }]}
       />
       <Suspense fallback={<EsqueletoCartera />}>
@@ -104,29 +99,34 @@ async function SeccionCartera({
   if (!empresa) return <SinEmpresa />;
 
   const fechaCorte = fechaCorteValida(params.corte);
-  const [saldos, cuentas, metodosPago, documentos, terceros] =
+  const [saldos, documentos, terceros, metodosPago, secuencias, configuracion] =
     await Promise.all([
       cargarAntiguedad(empresa.id, "cxp", fechaCorte),
-      cargarCuentas(empresa.id),
-      cargarMetodosPago(empresa.id),
-      cargarDocumentos(empresa.id, ["purchase_invoice"]),
+      cargarDocumentos(empresa.id, ["purchase_invoice", "purchase_credit"]),
       cargarTerceros(empresa.id),
+      cargarMetodosPago(empresa.id),
+      cargarSecuenciasNcf(empresa.id),
+      cargarConfiguracionFiscal(empresa.id),
     ]);
 
-  const ids = new Set(saldos.map((saldo) => saldo.documentoId));
-  const porDocumento = new Map<string, PagoListado[]>();
-
-  for (const pago of documentos.pagos) {
-    if (!ids.has(pago.documentoId)) continue;
-    const lista = porDocumento.get(pago.documentoId) ?? [];
-    lista.push(pago);
-    porDocumento.set(pago.documentoId, lista);
-  }
-
-  const pagosPorDocumento: Record<string, PagoListado[]> = {};
-  for (const [documentoId, pagos] of porDocumento) {
-    pagosPorDocumento[documentoId] = pagos;
-  }
+  const acreditables: DocumentoAcreditable[] = documentos.documentos
+    .filter(
+      (documento) =>
+        documento.tipo === "purchase_invoice" &&
+        documento.estado === "posted" &&
+        documento.saldo > 0,
+    )
+    .map((documento) => ({
+      id: documento.id,
+      numero: documento.numero,
+      ncf: documento.ncf,
+      tipo: documento.tipo,
+      terceroId: documento.terceroId,
+      tercero: documento.tercero,
+      fechaEmision: documento.fechaEmision,
+      total: documento.total,
+      saldo: documento.saldo,
+    }));
 
   const rncPorTercero: Record<string, string> = {};
   for (const tercero of terceros) {
@@ -148,11 +148,23 @@ async function SeccionCartera({
       tipo="cxp"
       fechaCorte={fechaCorte}
       saldos={saldos}
+      documentos={documentos.documentos}
+      pagos={documentos.pagos}
+      terceros={terceros}
       rncPorTercero={rncPorTercero}
-      pagosPorDocumento={pagosPorDocumento}
-      cuentas={cuentas}
+      cuentas={documentos.cuentas}
       metodosPago={metodosPago}
+      secuencias={secuencias}
+      documentosAcreditables={acreditables}
+      tasaItbisBps={configuracion.tasaItbisBps}
+      cuentaItbisAdelantadoId={configuracion.cuentaItbisAdelantadoId}
+      cuentaItbisPorPagarId={configuracion.cuentaItbisPorPagarId}
+      cuentaRetencionIsrId={configuracion.cuentaRetencionIsrId}
+      cuentaRetencionItbisId={configuracion.cuentaRetencionItbisId}
+      cuentaCxcDefaultId={configuracion.cuentaCxcDefaultId}
+      cuentaCxpDefaultId={configuracion.cuentaCxpDefaultId}
       moneda={moneda}
+      cargarDetalleDocumento={cargarDocumentoDetalleGastosAction}
     />
   );
 }
