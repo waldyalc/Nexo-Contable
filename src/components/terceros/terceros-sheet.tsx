@@ -211,6 +211,11 @@ export function TercerosSheet({
       },
       aplicarOptimista: () =>
         aplicarTerceroOptimista({ terceroId: tercero.id, activo }),
+      revertirOptimista: () =>
+        aplicarTerceroOptimista({
+          terceroId: tercero.id,
+          activo: tercero.activo,
+        }),
       accion: (entrada) => toggleTerceroActivoAction(entrada),
       mostrarExito: true,
       alExito: () => router.refresh(),

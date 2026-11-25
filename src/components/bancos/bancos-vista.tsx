@@ -371,6 +371,12 @@ export function BancosVista({
         conciliado: conciliar,
       },
       aplicarOptimista: () => aplicarMovimientoOptimista(cambio),
+      revertirOptimista: () =>
+        aplicarMovimientoOptimista({
+          id: movimiento.id,
+          conciliado: movimiento.conciliado,
+          sesionId: movimiento.sesionId,
+        }),
       accion: (entrada) => marcarMovimientoConciliadoAction(entrada),
       alExito: () => {
         setMovimientosSesion((actual) => conCambioConciliacion(actual, cambio));

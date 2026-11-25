@@ -14,6 +14,7 @@ interface EjecucionAccionOptimista<
   clave: string;
   entrada: TEntrada;
   aplicarOptimista: () => void;
+  revertirOptimista?: () => void;
   accion: (entrada: TEntrada) => Promise<TResultado>;
   alExito?: (
     resultado: { ok: true; mensaje?: string },
@@ -54,6 +55,7 @@ export function useAccionOptimista() {
     clave,
     entrada,
     aplicarOptimista,
+    revertirOptimista,
     accion,
     alExito,
     mostrarExito = false,
@@ -67,6 +69,7 @@ export function useAccionOptimista() {
         const resultado = await accion(entrada);
 
         if (!resultado.ok) {
+          revertirOptimista?.();
           toast.error(resultado.error);
           return;
         }
@@ -76,6 +79,7 @@ export function useAccionOptimista() {
         }
         alExito?.(resultado, entrada);
       } catch {
+        revertirOptimista?.();
         toast.error(mensajeErrorInesperado);
       } finally {
         liberarClave(clave);

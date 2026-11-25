@@ -212,6 +212,11 @@ export function CatalogoCuentasTab({ cuentas }: CatalogoCuentasTabProps) {
       },
       aplicarOptimista: () =>
         aplicarCuentaOptimista({ cuentaId: cuenta.id, activa }),
+      revertirOptimista: () =>
+        aplicarCuentaOptimista({
+          cuentaId: cuenta.id,
+          activa: cuenta.activa,
+        }),
       accion: (entrada) => actualizarCuentaAction(entrada),
       mostrarExito: true,
       alExito: () => router.refresh(),

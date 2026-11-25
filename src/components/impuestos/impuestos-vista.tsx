@@ -123,10 +123,10 @@ const OPCIONES_ESTADO_OBLIGACION = [
 
 interface CambioPresentacionObligacion {
   id: string;
-  estado: "filed" | "paid";
+  estado: ObligacionFiscalListado["estado"];
   montoDeclarado: number;
   referenciaPresentacion: string;
-  presentadoEn: string;
+  presentadoEn: string | null;
 }
 
 function conCambioPresentacionObligacion(
@@ -1774,6 +1774,14 @@ function PanelObligaciones({
       clave: obligacion.id,
       entrada,
       aplicarOptimista: () => aplicarObligacionOptimista(cambio),
+      revertirOptimista: () =>
+        aplicarObligacionOptimista({
+          id: obligacion.id,
+          estado: obligacion.estado,
+          montoDeclarado: obligacion.montoDeclarado,
+          referenciaPresentacion: obligacion.referenciaPresentacion,
+          presentadoEn: obligacion.presentadoEn,
+        }),
       accion: (datos) => marcarObligacionPresentadaAction(datos),
       mostrarExito: true,
       alExito: () => onCambio(),

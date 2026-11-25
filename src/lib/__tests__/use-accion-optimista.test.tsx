@@ -58,9 +58,11 @@ function crearDiferido<T>() {
 function Harness({
   accion,
   mostrarExito = false,
+  revertirOptimista,
 }: {
   accion: AccionPrueba;
   mostrarExito?: boolean;
+  revertirOptimista?: () => void;
 }) {
   const [filasBase, setFilasBase] = useState<FilaPrueba[]>([
     { id: "1", activo: false },
@@ -84,6 +86,7 @@ function Harness({
             clave: "1",
             entrada: { id: "1", activo: true },
             aplicarOptimista: () => aplicarOptimista({ id: "1", activo: true }),
+            revertirOptimista,
             accion,
             mostrarExito,
             alExito: () => setFilasBase([{ id: "1", activo: true }]),
@@ -122,7 +125,8 @@ describe("useAccionOptimista", () => {
   it("aplica el cambio al instante, bloquea el repetido y revierte con toast si falla", async () => {
     const diferido = crearDiferido<ResultadoPrueba>();
     const accion = vi.fn(() => diferido.promesa);
-    render(<Harness accion={accion} />);
+    const revertirOptimista = vi.fn();
+    render(<Harness accion={accion} revertirOptimista={revertirOptimista} />);
 
     fireEvent.click(boton());
 
@@ -138,6 +142,7 @@ describe("useAccionOptimista", () => {
     });
 
     expect(estado()).toBe("inactivo");
+    expect(revertirOptimista).toHaveBeenCalledTimes(1);
     expect(sonner.error).toHaveBeenCalledWith("Fallo controlado");
     expect(boton().disabled).toBe(false);
   });
@@ -165,7 +170,8 @@ describe("useAccionOptimista", () => {
     const accion = vi.fn(async () => {
       throw new Error("red caída");
     });
-    render(<Harness accion={accion} />);
+    const revertirOptimista = vi.fn();
+    render(<Harness accion={accion} revertirOptimista={revertirOptimista} />);
 
     fireEvent.click(boton());
     expect(estado()).toBe("activo");
@@ -176,6 +182,7 @@ describe("useAccionOptimista", () => {
     });
 
     expect(estado()).toBe("inactivo");
+    expect(revertirOptimista).toHaveBeenCalledTimes(1);
     expect(sonner.error).toHaveBeenCalledWith("Error inesperado controlado.");
     expect(boton().disabled).toBe(false);
   });
