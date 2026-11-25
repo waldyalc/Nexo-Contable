@@ -2,7 +2,6 @@
 
 import {
   IconBook2,
-  IconDownload,
   IconLoader2,
   IconScale,
   IconSearch,
@@ -16,7 +15,6 @@ import {
   type FilaMayor,
   consultarBalanzaAction,
   consultarLibroMayorAction,
-  exportarContableAction,
 } from "@/app/(app)/contabilidad/actions";
 import {
   DateRangePicker,
@@ -26,6 +24,7 @@ import { BarraLista } from "@/components/listas/barra-lista";
 import { PillEstado } from "@/components/listas/pill-estado";
 import { TablaLista } from "@/components/listas/tabla-lista";
 import { TarjetaLista } from "@/components/listas/tarjeta-lista";
+import { BotonDescargar } from "@/components/reportes/boton-descargar";
 import { SelectCampo } from "@/components/select-campo";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -35,6 +34,13 @@ import {
   formatearMoneda,
   hoySantoDomingo,
 } from "@/lib/formato";
+import {
+  describirRangoFechas,
+  nombreArchivoConPeriodo,
+  tablaBalanzaComprobacionReporte,
+  tablaLibroMayorReporte,
+} from "@/lib/reportes/adaptadores";
+import type { EmpresaReporte } from "@/lib/reportes/exportar/tipos";
 
 const FILA_TOTALES = "__totales__";
 
@@ -47,29 +53,17 @@ function rangoInicial(): RangoFechas {
   return { desde: `${hoy.slice(0, 4)}-01-01`, hasta: hoy };
 }
 
-function descargarBase64(archivo: string, base64: string) {
-  const binario = atob(base64);
-  const bytes = new Uint8Array(binario.length);
-  for (let indice = 0; indice < binario.length; indice += 1) {
-    bytes[indice] = binario.charCodeAt(indice);
-  }
-  const blob = new Blob([bytes], {
-    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  });
-  const url = URL.createObjectURL(blob);
-  const enlace = document.createElement("a");
-  enlace.href = url;
-  enlace.download = archivo;
-  enlace.click();
-  URL.revokeObjectURL(url);
-}
-
 export interface MayorBalanzaTabProps {
   cuentas: readonly CuentaContable[];
   moneda: Moneda;
+  empresa: EmpresaReporte;
 }
 
-export function MayorBalanzaTab({ cuentas, moneda }: MayorBalanzaTabProps) {
+export function MayorBalanzaTab({
+  cuentas,
+  moneda,
+  empresa,
+}: MayorBalanzaTabProps) {
   const ambitoCuentas = useMemo(
     () =>
       cuentas
@@ -84,11 +78,16 @@ export function MayorBalanzaTab({ cuentas, moneda }: MayorBalanzaTabProps) {
       key={ambitoCuentas}
       cuentas={cuentas}
       moneda={moneda}
+      empresa={empresa}
     />
   );
 }
 
-function MayorBalanzaContenido({ cuentas, moneda }: MayorBalanzaTabProps) {
+function MayorBalanzaContenido({
+  cuentas,
+  moneda,
+  empresa,
+}: MayorBalanzaTabProps) {
   const [vista, setVista] = useState<"mayor" | "balanza">("mayor");
   const [cuentaId, setCuentaId] = useState("");
   const [rango, setRango] = useState<RangoFechas>(rangoInicial);
@@ -97,7 +96,11 @@ function MayorBalanzaContenido({ cuentas, moneda }: MayorBalanzaTabProps) {
   const [consultadoMayor, setConsultadoMayor] = useState(false);
   const [consultadoBalanza, setConsultadoBalanza] = useState(false);
   const [cargando, setCargando] = useState(false);
-  const [exportando, setExportando] = useState(false);
+  const [rangoMayorConsultado, setRangoMayorConsultado] =
+    useState<RangoFechas>(rangoInicial);
+  const [cuentaMayorConsultadaId, setCuentaMayorConsultadaId] = useState("");
+  const [rangoBalanzaConsultado, setRangoBalanzaConsultado] =
+    useState<RangoFechas>(rangoInicial);
 
   const opcionesCuenta = useMemo(() => {
     const cuentasConHijas = new Set<string>();
@@ -197,6 +200,8 @@ function MayorBalanzaContenido({ cuentas, moneda }: MayorBalanzaTabProps) {
 
       setFilasMayor(resultado.filas);
       setConsultadoMayor(true);
+      setRangoMayorConsultado(rango);
+      setCuentaMayorConsultadaId(cuentaId);
       return;
     }
 
@@ -213,33 +218,64 @@ function MayorBalanzaContenido({ cuentas, moneda }: MayorBalanzaTabProps) {
 
     setFilasBalanza(resultado.filas);
     setConsultadoBalanza(true);
+    setRangoBalanzaConsultado(rango);
   }
 
-  async function exportar() {
-    if (!validarRango()) return;
+  const cuentaMayorConsultada = useMemo(
+    () => cuentas.find((cuenta) => cuenta.id === cuentaMayorConsultadaId),
+    [cuentas, cuentaMayorConsultadaId],
+  );
 
-    if (vista === "mayor" && cuentaId === "") {
-      toast.error("Selecciona la cuenta para exportar el mayor.");
-      return;
-    }
+  const subtituloMayor = useMemo(() => {
+    const periodo = describirRangoFechas(
+      rangoMayorConsultado.desde,
+      rangoMayorConsultado.hasta,
+    );
+    const cuenta = cuentaMayorConsultada
+      ? `${cuentaMayorConsultada.codigo} · ${cuentaMayorConsultada.nombre}`
+      : "Cuenta no disponible";
+    return `${periodo} · Cuenta: ${cuenta}`;
+  }, [cuentaMayorConsultada, rangoMayorConsultado]);
 
-    setExportando(true);
-    const resultado = await exportarContableAction({
-      tipo: vista,
-      cuentaId: vista === "mayor" ? cuentaId : undefined,
-      desde: rango.desde,
-      hasta: rango.hasta,
-    });
-    setExportando(false);
+  const tablaMayor = useMemo(
+    () =>
+      tablaLibroMayorReporte({
+        subtitulo: subtituloMayor,
+        empresa,
+        filas: filasMayor,
+      }),
+    [empresa, filasMayor, subtituloMayor],
+  );
 
-    if (!resultado.ok) {
-      toast.error(resultado.error);
-      return;
-    }
+  const subtituloBalanza = useMemo(
+    () =>
+      describirRangoFechas(
+        rangoBalanzaConsultado.desde,
+        rangoBalanzaConsultado.hasta,
+      ),
+    [rangoBalanzaConsultado],
+  );
 
-    descargarBase64(resultado.archivo, resultado.base64);
-    toast.success("Reporte exportado a Excel.");
-  }
+  const tablaBalanza = useMemo(
+    () =>
+      tablaBalanzaComprobacionReporte({
+        subtitulo: subtituloBalanza,
+        empresa,
+        filas: filasBalanza,
+      }),
+    [empresa, filasBalanza, subtituloBalanza],
+  );
+
+  const archivoMayor = nombreArchivoConPeriodo(
+    `libro-mayor-${cuentaMayorConsultada?.codigo ?? "cuenta"}`,
+    rangoMayorConsultado.desde,
+    rangoMayorConsultado.hasta,
+  );
+  const archivoBalanza = nombreArchivoConPeriodo(
+    "balanza-de-comprobacion",
+    rangoBalanzaConsultado.desde,
+    rangoBalanzaConsultado.hasta,
+  );
 
   const saldoFinal = filasMayor.at(-1)?.saldo ?? 0;
 
@@ -281,18 +317,12 @@ function MayorBalanzaContenido({ cuentas, moneda }: MayorBalanzaTabProps) {
                   )}
                   Consultar
                 </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => void exportar()}
-                  disabled={exportando || filasMayor.length === 0}
-                >
-                  {exportando ? (
-                    <IconLoader2 className="size-4 animate-spin" />
-                  ) : (
-                    <IconDownload className="size-4" />
-                  )}
-                  Exportar Excel
-                </Button>
+                {consultadoMayor ? (
+                  <BotonDescargar
+                    tabla={tablaMayor}
+                    nombreArchivo={archivoMayor}
+                  />
+                ) : null}
               </>
             }
             filtros={
@@ -422,18 +452,12 @@ function MayorBalanzaContenido({ cuentas, moneda }: MayorBalanzaTabProps) {
                   )}
                   Consultar
                 </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => void exportar()}
-                  disabled={exportando || filasBalanza.length === 0}
-                >
-                  {exportando ? (
-                    <IconLoader2 className="size-4 animate-spin" />
-                  ) : (
-                    <IconDownload className="size-4" />
-                  )}
-                  Exportar Excel
-                </Button>
+                {consultadoBalanza ? (
+                  <BotonDescargar
+                    tabla={tablaBalanza}
+                    nombreArchivo={archivoBalanza}
+                  />
+                ) : null}
               </>
             }
             filtros={

@@ -31,6 +31,7 @@ import { BarraLista } from "@/components/listas/barra-lista";
 import { PillEstado } from "@/components/listas/pill-estado";
 import { TablaLista } from "@/components/listas/tabla-lista";
 import { TarjetaLista } from "@/components/listas/tarjeta-lista";
+import { BotonDescargar } from "@/components/reportes/boton-descargar";
 import { SelectCampo } from "@/components/select-campo";
 import { Button } from "@/components/ui/button";
 import {
@@ -57,6 +58,12 @@ import {
   formatearMoneda,
   hoySantoDomingo,
 } from "@/lib/formato";
+import {
+  describirRangoFechas,
+  nombreArchivoConPeriodo,
+  tablaLibroDiarioReporte,
+} from "@/lib/reportes/adaptadores";
+import type { EmpresaReporte } from "@/lib/reportes/exportar/tipos";
 
 const OPCIONES_ESTADO = [
   { value: "draft", label: "Borradores" },
@@ -470,6 +477,7 @@ export interface DiarioAsientosTabProps {
   lineas: readonly LineaAsiento[];
   cuentas: readonly CuentaContable[];
   moneda: Moneda;
+  empresa: EmpresaReporte;
 }
 
 export function DiarioAsientosTab({
@@ -477,6 +485,7 @@ export function DiarioAsientosTab({
   lineas,
   cuentas,
   moneda,
+  empresa,
 }: DiarioAsientosTabProps) {
   const router = useRouter();
   const [rango, setRango] = useState<RangoFechas>({ desde: "", hasta: "" });
@@ -520,6 +529,60 @@ export function DiarioAsientosTab({
       );
     });
   }, [asientos, busqueda, estado, rango]);
+
+  const filasDiarioReporte = useMemo(
+    () =>
+      filtradas.map((asiento) => {
+        const movimientos = lineasPorAsiento.get(asiento.id) ?? [];
+        return {
+          numero: asiento.numero,
+          fecha: asiento.fecha,
+          descripcion: asiento.descripcion,
+          referencia: asiento.referencia,
+          debitos: movimientos.reduce(
+            (acumulado, linea) => acumulado + linea.debito,
+            0,
+          ),
+          creditos: movimientos.reduce(
+            (acumulado, linea) => acumulado + linea.credito,
+            0,
+          ),
+          estado: estadoLegible(asiento.estado),
+        };
+      }),
+    [filtradas, lineasPorAsiento],
+  );
+
+  const subtituloDiario = useMemo(() => {
+    const partes = [describirRangoFechas(rango.desde, rango.hasta)];
+    const estadoActivo = OPCIONES_ESTADO.find(
+      (opcion) => opcion.value === estado,
+    );
+
+    if (estadoActivo) partes.push(`Estado: ${estadoActivo.label}`);
+
+    const termino = busqueda.trim();
+    if (termino !== "") partes.push(`Búsqueda: ${termino}`);
+
+    partes.push(`${filtradas.length} de ${asientos.length} asientos recientes`);
+    return partes.join(" · ");
+  }, [asientos.length, busqueda, estado, filtradas.length, rango]);
+
+  const tablaDiario = useMemo(
+    () =>
+      tablaLibroDiarioReporte({
+        subtitulo: subtituloDiario,
+        empresa,
+        filas: filasDiarioReporte,
+      }),
+    [empresa, filasDiarioReporte, subtituloDiario],
+  );
+
+  const archivoDiario = nombreArchivoConPeriodo(
+    "libro-diario",
+    rango.desde,
+    rango.hasta,
+  );
 
   async function contabilizar(asiento: AsientoListado) {
     setProcesando(asiento.id);
@@ -567,10 +630,16 @@ export function DiarioAsientosTab({
           titulo="Libro diario"
           descripcion={`${filtradas.length} de ${asientos.length} asientos recientes`}
           acciones={
-            <Button onClick={() => setDialogoNuevo(true)}>
-              <IconPlus className="size-4" />
-              Nuevo asiento
-            </Button>
+            <>
+              <Button onClick={() => setDialogoNuevo(true)}>
+                <IconPlus className="size-4" />
+                Nuevo asiento
+              </Button>
+              <BotonDescargar
+                tabla={tablaDiario}
+                nombreArchivo={archivoDiario}
+              />
+            </>
           }
           filtros={
             <>

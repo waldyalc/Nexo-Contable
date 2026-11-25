@@ -4,17 +4,22 @@ import {
   IconReportAnalytics,
 } from "@tabler/icons-react";
 import Link from "next/link";
+import { Suspense } from "react";
 
 import type {
   FilaBalanceGeneral,
   FilaEstadoResultados,
   FilaFlujoEfectivo,
 } from "@/app/(app)/finanzas/actions";
+import {
+  EsqueletoPestanas,
+  EsqueletoTabla,
+} from "@/components/carga/esqueletos";
 import { FinanzasVista } from "@/components/finanzas/finanzas-vista";
 import { TarjetaLista } from "@/components/listas/tarjeta-lista";
 import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { Button } from "@/components/ui/button";
-import { obtenerContextoApp } from "@/lib/auth/sesion";
+import { type EmpresaAsignada, obtenerContextoApp } from "@/lib/auth/sesion";
 import { type Moneda, aNumero, hoySantoDomingo } from "@/lib/formato";
 import { createClient } from "@/lib/supabase/server";
 
@@ -75,45 +80,40 @@ function EstadoSinAcceso() {
   );
 }
 
-export default async function FinanzasPage() {
-  const contexto = await obtenerContextoApp();
-  const empresa = contexto.empresaActiva;
-  const rol = contexto.esAdminGlobal ? "admin_global" : (empresa?.rol ?? null);
-  const autorizado = rol !== null && ROLES_FINANZAS.has(rol);
-  const hoy = hoySantoDomingo();
-  const rangoInicial = { desde: `${hoy.slice(0, 4)}-01-01`, hasta: hoy };
+interface RangoInicial {
+  desde: string;
+  hasta: string;
+}
 
-  const encabezado = (
-    <EncabezadoPagina
-      titulo="Finanzas"
-      descripcion={
-        empresa
-          ? `${empresa.nombreComercial} · Estados financieros y exportación a Excel`
-          : "Estados financieros de la empresa activa."
-      }
-      migas={[{ etiqueta: "Operaciones" }, { etiqueta: "Finanzas" }]}
-    />
+interface FinanzasContenidoProps {
+  empresa: EmpresaAsignada;
+  moneda: Moneda;
+  rangoInicial: RangoInicial;
+  hoy: string;
+}
+
+function EsqueletoFinanzas() {
+  return (
+    <div className="flex flex-col gap-3">
+      <EsqueletoPestanas cantidad={3} />
+      <EsqueletoTabla
+        titulo="Estados financieros"
+        descripcion="Cargando los reportes de la empresa…"
+        acciones={2}
+        filtros={1}
+        filas={10}
+        columnas={3}
+      />
+    </div>
   );
+}
 
-  if (!empresa) {
-    return (
-      <>
-        {encabezado}
-        <EstadoSinEmpresa />
-      </>
-    );
-  }
-
-  if (!autorizado) {
-    return (
-      <>
-        {encabezado}
-        <EstadoSinAcceso />
-      </>
-    );
-  }
-
-  const moneda: Moneda = empresa.monedaFuncional === "USD" ? "USD" : "DOP";
+async function FinanzasContenido({
+  empresa,
+  moneda,
+  rangoInicial,
+  hoy,
+}: FinanzasContenidoProps) {
   const supabase = await createClient();
 
   const [resultadosRespuesta, balanceRespuesta, flujoRespuesta] =
@@ -177,7 +177,6 @@ export default async function FinanzasPage() {
 
   return (
     <>
-      {encabezado}
       {error ? (
         <p
           role="alert"
@@ -190,6 +189,8 @@ export default async function FinanzasPage() {
         key={empresa.id}
         empresaId={empresa.id}
         empresaNombre={empresa.nombreComercial}
+        empresaRazonSocial={empresa.razonSocial}
+        empresaRnc={empresa.rnc}
         moneda={moneda}
         rangoInicial={rangoInicial}
         fechaCorteInicial={hoy}
@@ -200,6 +201,61 @@ export default async function FinanzasPage() {
         flujoInicial={flujoEfectivo}
         resultadoFlujoInicial={resultadoFlujo}
       />
+    </>
+  );
+}
+
+export default async function FinanzasPage() {
+  const contexto = await obtenerContextoApp();
+  const empresa = contexto.empresaActiva;
+  const rol = contexto.esAdminGlobal ? "admin_global" : (empresa?.rol ?? null);
+  const autorizado = rol !== null && ROLES_FINANZAS.has(rol);
+  const hoy = hoySantoDomingo();
+  const rangoInicial = { desde: `${hoy.slice(0, 4)}-01-01`, hasta: hoy };
+
+  const encabezado = (
+    <EncabezadoPagina
+      titulo="Finanzas"
+      descripcion={
+        empresa
+          ? `${empresa.nombreComercial} · Estados financieros y reportes exportables`
+          : "Estados financieros de la empresa activa."
+      }
+      migas={[{ etiqueta: "Operaciones" }, { etiqueta: "Finanzas" }]}
+    />
+  );
+
+  if (!empresa) {
+    return (
+      <>
+        {encabezado}
+        <EstadoSinEmpresa />
+      </>
+    );
+  }
+
+  if (!autorizado) {
+    return (
+      <>
+        {encabezado}
+        <EstadoSinAcceso />
+      </>
+    );
+  }
+
+  const moneda: Moneda = empresa.monedaFuncional === "USD" ? "USD" : "DOP";
+
+  return (
+    <>
+      {encabezado}
+      <Suspense fallback={<EsqueletoFinanzas />}>
+        <FinanzasContenido
+          empresa={empresa}
+          moneda={moneda}
+          rangoInicial={rangoInicial}
+          hoy={hoy}
+        />
+      </Suspense>
     </>
   );
 }
