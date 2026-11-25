@@ -57,12 +57,16 @@ export interface MayorBalanzaTabProps {
   cuentas: readonly CuentaContable[];
   moneda: Moneda;
   empresa: EmpresaReporte;
+  vistaInicial?: "mayor" | "balanza";
+  ocultarSelector?: boolean;
 }
 
 export function MayorBalanzaTab({
   cuentas,
   moneda,
   empresa,
+  vistaInicial = "mayor",
+  ocultarSelector = false,
 }: MayorBalanzaTabProps) {
   const ambitoCuentas = useMemo(
     () =>
@@ -79,6 +83,8 @@ export function MayorBalanzaTab({
       cuentas={cuentas}
       moneda={moneda}
       empresa={empresa}
+      vistaInicial={vistaInicial}
+      ocultarSelector={ocultarSelector}
     />
   );
 }
@@ -87,8 +93,10 @@ function MayorBalanzaContenido({
   cuentas,
   moneda,
   empresa,
+  vistaInicial = "mayor",
+  ocultarSelector = false,
 }: MayorBalanzaTabProps) {
-  const [vista, setVista] = useState<"mayor" | "balanza">("mayor");
+  const [vista, setVista] = useState<"mayor" | "balanza">(vistaInicial);
   const [cuentaId, setCuentaId] = useState("");
   const [rango, setRango] = useState<RangoFechas>(rangoInicial);
   const [filasMayor, setFilasMayor] = useState<FilaMayor[]>([]);
@@ -287,7 +295,7 @@ function MayorBalanzaContenido({
       }}
       className="gap-3"
     >
-      <TabsList className="w-fit">
+      <TabsList className={ocultarSelector ? "hidden" : "w-fit"}>
         <TabsTrigger value="mayor">
           <IconBook2 className="size-4" />
           Libro mayor
