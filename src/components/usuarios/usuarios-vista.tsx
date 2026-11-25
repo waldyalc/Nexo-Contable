@@ -2,6 +2,7 @@
 
 import {
   IconDots,
+  IconKey,
   IconLoader2,
   IconPencil,
   IconRefresh,
@@ -49,17 +50,10 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import type { RolContexto } from "@/lib/auth/sesion";
 
-const OPCIONES_ROL_GLOBAL = [
-  { value: "usuario", label: "Usuario" },
-  { value: "admin_global", label: "Administrador global" },
-];
-
-const OPCIONES_ROL_EMPRESA = [
-  { value: "admin_empresa", label: "Administrador de empresa" },
-  { value: "contador", label: "Contador" },
-  { value: "auxiliar", label: "Auxiliar" },
-  { value: "cliente", label: "Cliente" },
-];
+import { DialogoCrearUsuario } from "./dialogo-crear-usuario";
+import { DialogoRestablecerPassword } from "./dialogo-restablecer-password";
+import { OPCIONES_ROL_EMPRESA, OPCIONES_ROL_GLOBAL } from "./opciones-roles";
+import type { EmpresaDisponible } from "./tipos";
 
 const OPCIONES_FILTRO_ESTADO = [
   { value: "active", label: "Activos" },
@@ -83,10 +77,7 @@ export interface UsuarioListado {
   asignaciones: AsignacionUsuario[];
 }
 
-export interface EmpresaDisponible {
-  id: string;
-  nombreComercial: string;
-}
+export type { EmpresaDisponible };
 
 function etiquetaRol(rol: string): string {
   if (
@@ -131,6 +122,10 @@ export function UsuariosVista({
   );
   const [usuarioAsignacion, setUsuarioAsignacion] =
     useState<UsuarioListado | null>(null);
+  const [usuarioPassword, setUsuarioPassword] = useState<UsuarioListado | null>(
+    null,
+  );
+  const [creandoUsuario, setCreandoUsuario] = useState(false);
 
   const filtrados = useMemo(() => {
     const termino = busqueda.trim().toLowerCase();
@@ -173,6 +168,14 @@ export function UsuariosVista({
         <BarraLista
           titulo="Listado de usuarios"
           descripcion={`${filtrados.length} de ${usuarios.length} usuarios`}
+          acciones={
+            esAdminGlobal ? (
+              <Button onClick={() => setCreandoUsuario(true)}>
+                <IconUserPlus className="size-4" />
+                Nuevo usuario
+              </Button>
+            ) : undefined
+          }
           filtros={
             <>
               <div className="relative w-full sm:max-w-xs">
@@ -205,7 +208,7 @@ export function UsuariosVista({
             vacio={{
               titulo: "Sin usuarios",
               descripcion:
-                "Los usuarios se aprovisionan desde Supabase Auth; aquí puedes gestionar roles y accesos.",
+                "Crea usuarios confirmados desde Nuevo usuario y gestiona sus roles y accesos aquí.",
               icono: <IconUsersGroup className="size-8" />,
             }}
             columnas={[
@@ -334,6 +337,12 @@ export function UsuariosVista({
                             <IconPencil className="size-4" />
                             Editar usuario
                           </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => setUsuarioPassword(usuario)}
+                          >
+                            <IconKey className="size-4" />
+                            Restablecer contraseña
+                          </DropdownMenuItem>
                         </>
                       ) : null}
                     </DropdownMenuContent>
@@ -359,6 +368,20 @@ export function UsuariosVista({
         empresasDisponibles={empresasDisponibles}
         onOpenChange={(abierto) => {
           if (!abierto) setUsuarioAsignacion(null);
+        }}
+      />
+
+      <DialogoCrearUsuario
+        abierto={creandoUsuario}
+        empresasDisponibles={empresasDisponibles}
+        onOpenChange={setCreandoUsuario}
+      />
+
+      <DialogoRestablecerPassword
+        abierto={usuarioPassword !== null}
+        usuario={usuarioPassword}
+        onOpenChange={(abierto) => {
+          if (!abierto) setUsuarioPassword(null);
         }}
       />
     </>

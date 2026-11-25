@@ -1,9 +1,17 @@
 "use server";
 
+import { FunctionsHttpError } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { createClient } from "@/lib/supabase/server";
+
+import {
+  type DatosCrearUsuario,
+  type DatosRestablecerPasswordUsuario,
+  esquemaCrearUsuario,
+  esquemaRestablecerPasswordUsuario,
+} from "./esquemas";
 
 export type ResultadoUsuario =
   | { ok: true; mensaje: string }
@@ -64,6 +72,148 @@ async function exigirSesion() {
   if (!user) return null;
 
   return supabase;
+}
+
+type ClienteSupabaseServidor = Awaited<ReturnType<typeof createClient>>;
+
+type ResultadoInvocacion = { ok: true } | { ok: false; error: string };
+
+interface RespuestaAdminUsuarios {
+  ok?: boolean;
+  error?: string;
+}
+
+function esObjeto(valor: unknown): valor is Record<string, unknown> {
+  return typeof valor === "object" && valor !== null && !Array.isArray(valor);
+}
+
+async function mensajeErrorFuncion(error: unknown): Promise<string> {
+  if (error instanceof FunctionsHttpError) {
+    try {
+      const cuerpo: unknown = await error.context.json();
+      if (
+        esObjeto(cuerpo) &&
+        typeof cuerpo.error === "string" &&
+        cuerpo.error.trim() !== ""
+      ) {
+        return cuerpo.error;
+      }
+    } catch {
+      return error.message;
+    }
+  }
+
+  if (error instanceof Error && error.message.trim() !== "") {
+    return error.message;
+  }
+
+  return "No se pudo ejecutar la función administrativa de usuarios.";
+}
+
+async function invocarAdminUsuarios(
+  supabase: ClienteSupabaseServidor,
+  cuerpo: Record<string, unknown>,
+): Promise<ResultadoInvocacion> {
+  const { data, error } =
+    await supabase.functions.invoke<RespuestaAdminUsuarios>("admin-usuarios", {
+      body: cuerpo,
+    });
+
+  if (error) {
+    return { ok: false, error: await mensajeErrorFuncion(error) };
+  }
+
+  if (!data || data.ok !== true) {
+    return {
+      ok: false,
+      error:
+        typeof data?.error === "string" && data.error.trim() !== ""
+          ? data.error
+          : "La función administrativa no confirmó la operación.",
+    };
+  }
+
+  return { ok: true };
+}
+
+export async function crearUsuarioAction(
+  datos: DatosCrearUsuario,
+): Promise<ResultadoUsuario> {
+  const supabase = await exigirSesion();
+
+  if (!supabase) {
+    return { ok: false, error: "La sesión expiró. Inicia sesión de nuevo." };
+  }
+
+  const resultado = esquemaCrearUsuario.safeParse(datos);
+
+  if (!resultado.success) {
+    return {
+      ok: false,
+      error:
+        resultado.error.issues[0]?.message ?? "Revisa los datos del usuario.",
+    };
+  }
+
+  const datosValidados = resultado.data;
+  const invocacion = await invocarAdminUsuarios(supabase, {
+    operacion: "crear_usuario",
+    datos: {
+      email: datosValidados.email,
+      password: datosValidados.password,
+      nombre: datosValidados.nombre,
+      rol_global: datosValidados.rolGlobal,
+      activo: datosValidados.activo,
+      empresas: datosValidados.empresas.map((empresa) => ({
+        empresa_id: empresa.empresaId,
+        rol: empresa.rol,
+      })),
+    },
+  });
+
+  if (!invocacion.ok) {
+    return { ok: false, error: invocacion.error };
+  }
+
+  refrescarListas();
+
+  return { ok: true, mensaje: "Usuario creado correctamente." };
+}
+
+export async function restablecerPasswordUsuarioAction(
+  datos: DatosRestablecerPasswordUsuario,
+): Promise<ResultadoUsuario> {
+  const supabase = await exigirSesion();
+
+  if (!supabase) {
+    return { ok: false, error: "La sesión expiró. Inicia sesión de nuevo." };
+  }
+
+  const resultado = esquemaRestablecerPasswordUsuario.safeParse(datos);
+
+  if (!resultado.success) {
+    return {
+      ok: false,
+      error:
+        resultado.error.issues[0]?.message ?? "Revisa la nueva contraseña.",
+    };
+  }
+
+  const invocacion = await invocarAdminUsuarios(supabase, {
+    operacion: "restablecer_password",
+    datos: {
+      user_id: resultado.data.userId,
+      password: resultado.data.password,
+    },
+  });
+
+  if (!invocacion.ok) {
+    return { ok: false, error: invocacion.error };
+  }
+
+  refrescarListas();
+
+  return { ok: true, mensaje: "Contraseña restablecida correctamente." };
 }
 
 export async function actualizarUsuarioAction(
