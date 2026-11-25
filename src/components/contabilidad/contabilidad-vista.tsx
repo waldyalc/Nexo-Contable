@@ -6,7 +6,7 @@ import {
   IconScale,
   IconStack2,
 } from "@tabler/icons-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import type {
   AsientoListado,
@@ -20,9 +20,12 @@ import { MayorBalanzaTab } from "@/components/contabilidad/mayor-balanza-tab";
 import { PeriodosTab } from "@/components/contabilidad/periodos-tab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Moneda } from "@/lib/formato";
+import { crearEmpresaReporte } from "@/lib/reportes/adaptadores";
 
 export interface ContabilidadVistaProps {
   empresaNombre: string;
+  empresaRazonSocial: string;
+  empresaRnc: string;
   moneda: Moneda;
   cuentas: readonly CuentaContable[];
   asientos: readonly AsientoListado[];
@@ -32,6 +35,8 @@ export interface ContabilidadVistaProps {
 
 export function ContabilidadVista({
   empresaNombre,
+  empresaRazonSocial,
+  empresaRnc,
   moneda,
   cuentas,
   asientos,
@@ -39,6 +44,16 @@ export function ContabilidadVista({
   periodos,
 }: ContabilidadVistaProps) {
   const [pestana, setPestana] = useState("catalogo");
+  const empresaReporte = useMemo(
+    () =>
+      crearEmpresaReporte({
+        nombreComercial: empresaNombre,
+        razonSocial: empresaRazonSocial,
+        rnc: empresaRnc,
+        moneda,
+      }),
+    [empresaNombre, empresaRazonSocial, empresaRnc, moneda],
+  );
 
   return (
     <Tabs
@@ -79,11 +94,16 @@ export function ContabilidadVista({
           lineas={lineas}
           cuentas={cuentas}
           moneda={moneda}
+          empresa={empresaReporte}
         />
       </TabsContent>
 
       <TabsContent value="mayor">
-        <MayorBalanzaTab cuentas={cuentas} moneda={moneda} />
+        <MayorBalanzaTab
+          cuentas={cuentas}
+          moneda={moneda}
+          empresa={empresaReporte}
+        />
       </TabsContent>
 
       <TabsContent value="periodos">

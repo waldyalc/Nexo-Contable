@@ -242,6 +242,8 @@ async function ContabilidadContenido({
       <ContabilidadVista
         key={empresa.id}
         empresaNombre={empresa.nombreComercial}
+        empresaRazonSocial={empresa.razonSocial}
+        empresaRnc={empresa.rnc}
         moneda={moneda}
         cuentas={cuentas}
         asientos={asientosListado}
