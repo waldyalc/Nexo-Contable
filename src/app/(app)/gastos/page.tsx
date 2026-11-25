@@ -8,6 +8,7 @@ import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { obtenerContextoApp } from "@/lib/auth/sesion";
 import { periodoActualSantoDomingo } from "@/lib/formato";
 import {
+  cargarArticulosDocumento,
   cargarConfiguracionFiscal,
   cargarCuentas,
   cargarDocumentos,
@@ -76,6 +77,7 @@ async function GastosContenido() {
     terceros,
     cuentas,
     metodosPago,
+    articulos,
     secuencias,
     configuracion,
   ] = await Promise.all([
@@ -83,6 +85,7 @@ async function GastosContenido() {
     cargarTerceros(empresa.id),
     cargarCuentas(empresa.id),
     cargarMetodosPago(empresa.id),
+    cargarArticulosDocumento(empresa.id),
     cargarSecuenciasNcf(empresa.id),
     cargarConfiguracionFiscal(empresa.id),
   ]);
@@ -122,6 +125,7 @@ async function GastosContenido() {
       terceros={terceros}
       cuentas={cuentas}
       metodosPago={metodosPago}
+      articulos={articulos}
       secuencias={secuencias}
       documentosAcreditables={acreditables}
       tasaItbisBps={configuracion.tasaItbisBps}

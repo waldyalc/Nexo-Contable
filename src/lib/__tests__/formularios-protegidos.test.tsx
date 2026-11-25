@@ -29,6 +29,7 @@ const acciones = vi.hoisted(() => ({
   emitirCompra: vi.fn(),
   emitirVenta: vi.fn(),
   guardarTercero: vi.fn(),
+  guardarBorrador: vi.fn(),
   refrescar: vi.fn(),
   registrarPago: vi.fn(),
   revertirAsiento: vi.fn(),
@@ -62,6 +63,12 @@ vi.mock("@/app/(app)/gastos/actions", () => ({
 
 vi.mock("@/app/(app)/facturacion/actions", () => ({
   emitirDocumentoVentaAction: acciones.emitirVenta,
+}));
+
+vi.mock("@/lib/operaciones/documentos-borrador-actions", () => ({
+  guardarDocumentoBorradorAction: acciones.guardarBorrador,
+  contabilizarDocumentoBorradorAction: vi.fn(),
+  asignarNcfDocumentoBorradorAction: vi.fn(),
 }));
 
 vi.mock("sonner", () => ({
@@ -197,6 +204,7 @@ function renderizarDocumento(onOpenChange = vi.fn()) {
       cuentaItbisAdelantadoId={CUENTAS[0]?.id ?? null}
       cuentaRetencionIsrId={CUENTAS[0]?.id ?? null}
       cuentaCxpDefaultId={CUENTAS[0]?.id ?? null}
+      metodosPago={METODOS}
     />,
   );
   return { onOpenChange };
@@ -318,6 +326,7 @@ describe("formularios operativos protegidos", () => {
     acciones.crearAsiento.mockReset();
     acciones.guardarTercero.mockReset();
     acciones.toggleTercero.mockReset();
+    acciones.guardarBorrador.mockReset();
     acciones.refrescar.mockReset();
   });
 
@@ -432,22 +441,29 @@ describe("formularios operativos protegidos", () => {
     expect(protegido.onRegistrado).toHaveBeenCalledTimes(1);
   });
 
-  it("DocumentoFormDialog ignora emisiones repetidas mientras emite la compra", async () => {
-    const emisionPendiente: {
+  it("DocumentoFormDialog ignora guardados repetidos mientras guarda el borrador", async () => {
+    const guardadoPendiente: {
       resolver:
         | ((resultado: ResultadoOperacion<{ id: string }>) => void)
         | null;
     } = { resolver: null };
-    acciones.emitirCompra.mockImplementation(
+    acciones.guardarBorrador.mockImplementation(
       () =>
         new Promise<ResultadoOperacion<{ id: string }>>((resolver) => {
-          emisionPendiente.resolver = resolver;
+          guardadoPendiente.resolver = resolver;
         }),
     );
 
     const protegido = renderizarDocumento();
+    fireEvent.change(campoDocumento("documento-numero"), {
+      target: { value: "G-2026-0001" },
+    });
     await elegirEnCombobox("documento-tercero", "Proveedor de prueba");
     await elegirEnCombobox("documento-cuenta", "1101 · Caja general");
+    await elegirEnCombobox(
+      "documento-metodo-pago",
+      "Efectivo · 1101 Caja general · pagada",
+    );
     fireEvent.change(campoConcepto(), {
       target: { value: "Compra de materiales" },
     });
@@ -467,15 +483,15 @@ describe("formularios operativos protegidos", () => {
     fireEvent.submit(formulario);
     fireEvent.submit(formulario);
 
-    expect(acciones.emitirCompra).toHaveBeenCalledTimes(1);
-    expect(screen.getByRole("button", { name: "Emitiendo…" })).toHaveProperty(
+    expect(acciones.guardarBorrador).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("button", { name: "Guardando…" })).toHaveProperty(
       "disabled",
       true,
     );
 
     exigirValor(
-      emisionPendiente.resolver,
-      "La emisión del documento no quedó pendiente",
+      guardadoPendiente.resolver,
+      "El guardado del documento no quedó pendiente",
     )({
       ok: true,
       mensaje: "Compra registrada.",

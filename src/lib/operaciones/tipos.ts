@@ -65,11 +65,40 @@ export interface DocumentoListado {
   concepto: string;
   subtotal: number;
   impuesto: number;
+  retenciones: number;
+  otrosImpuestos: number;
   total: number;
   pagado: number;
   saldo: number;
   estado: EstadoDocumento;
   estadoCobro: EstadoCobro;
+  cuentaId: string;
+  cuentaControlId: string;
+  cuentaImpuestoId: string | null;
+  cuentaRetencionId: string | null;
+  documentoAcreditadoId: string | null;
+  detallesFiscales: Record<string, unknown>;
+}
+
+export interface ArticuloDocumento {
+  id: string;
+  sku: string;
+  nombre: string;
+  precioVenta: number;
+  costoPromedio: number;
+  cuentaInventarioId: string | null;
+  cuentaCostoId: string | null;
+  cuentaIngresoId: string | null;
+}
+
+export interface RenglonDocumentoEntrada {
+  cuentaId: string;
+  monto: number;
+  descripcion: string;
+  articuloId: string | null;
+  cantidad: number | null;
+  precioUnitario: number | null;
+  costoUnitario: number | null;
 }
 
 export interface PagoListado {
