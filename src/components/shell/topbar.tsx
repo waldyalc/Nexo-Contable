@@ -39,12 +39,14 @@ export function Topbar({ contexto, onAbrirMenu, onAbrirPaleta }: TopbarProps) {
           variant="outline"
           aria-label="Abrir búsqueda global"
           aria-keyshortcuts="Control+K Meta+K"
-          className="h-9 gap-2 border-border bg-muted/40 px-2.5 text-muted-foreground hover:text-foreground"
+          className="h-9 gap-2 border-border bg-muted/40 px-3 text-muted-foreground hover:text-foreground md:w-72 md:justify-between lg:w-96 xl:w-[30rem]"
           onClick={onAbrirPaleta}
         >
-          <IconSearch className="size-4 shrink-0" />
-          <span className="hidden text-sm md:inline">Buscar…</span>
-          <kbd className="hidden rounded-md border border-border bg-card px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground lg:inline-flex">
+          <span className="flex min-w-0 items-center gap-2">
+            <IconSearch className="size-4 shrink-0" />
+            <span className="hidden truncate text-sm md:inline">Buscar…</span>
+          </span>
+          <kbd className="hidden rounded-md border border-border bg-card px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground md:inline-flex">
             Ctrl K
           </kbd>
         </Button>
