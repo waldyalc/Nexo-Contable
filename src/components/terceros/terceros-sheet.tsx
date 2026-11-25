@@ -12,9 +12,11 @@ import {
 import { useRouter } from "next/navigation";
 import {
   type FormEvent,
+  useCallback,
   useEffect,
   useMemo,
   useOptimistic,
+  useRef,
   useState,
 } from "react";
 import { toast } from "sonner";
@@ -27,6 +29,10 @@ import {
 import { useAccionOptimista } from "@/components/comunes/use-accion-optimista";
 import { FormField } from "@/components/formularios/form-card";
 import { PillEstado } from "@/components/listas/pill-estado";
+import {
+  DialogoConfirmarDescarte,
+  formularioTieneCambios,
+} from "@/components/operaciones/dialogos-cartera";
 import { SelectCampo } from "@/components/select-campo";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -82,6 +88,8 @@ interface FormTercero {
   cuentaPorCobrarId: string;
   activo: boolean;
 }
+
+type AccionDescarteTerceros = "cancelar-formulario" | "cerrar-sheet";
 
 function formInicial(
   tercero: TerceroListado | null,
@@ -163,6 +171,19 @@ export function TercerosSheet({
     conCambioActivoTercero,
   );
   const accionOptimista = useAccionOptimista();
+  const [formularioSucio, setFormularioSucio] = useState(false);
+  const [formularioGuardando, setFormularioGuardando] = useState(false);
+  const [descartePendiente, setDescartePendiente] =
+    useState<AccionDescarteTerceros | null>(null);
+  const enFormulario = creando || editando !== null;
+
+  const notificarEstadoFormulario = useCallback(
+    (sucio: boolean, guardando: boolean) => {
+      setFormularioSucio(sucio);
+      setFormularioGuardando(guardando);
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!abierto) {
@@ -170,8 +191,18 @@ export function TercerosSheet({
       setCreando(false);
       setBusqueda("");
       setFiltroTipo("");
+      setFormularioSucio(false);
+      setFormularioGuardando(false);
+      setDescartePendiente(null);
     }
   }, [abierto]);
+
+  useEffect(() => {
+    if (!enFormulario) {
+      setFormularioSucio(false);
+      setFormularioGuardando(false);
+    }
+  }, [enFormulario]);
 
   const opcionesCuentas = useMemo(
     () =>
@@ -224,10 +255,63 @@ export function TercerosSheet({
     });
   }
 
-  const enFormulario = creando || editando !== null;
+  function salirFormulario() {
+    setCreando(false);
+    setEditando(null);
+  }
+
+  function solicitarCancelacionFormulario() {
+    if (formularioGuardando) return;
+    if (formularioSucio) {
+      setDescartePendiente("cancelar-formulario");
+      return;
+    }
+    salirFormulario();
+  }
+
+  function solicitarCierre(
+    siguienteAbierto: boolean,
+    cancelarEvento?: () => void,
+  ) {
+    if (siguienteAbierto) {
+      onOpenChange(true);
+      return;
+    }
+    if (formularioGuardando) {
+      cancelarEvento?.();
+      return;
+    }
+    if (enFormulario && formularioSucio) {
+      cancelarEvento?.();
+      setDescartePendiente("cerrar-sheet");
+      return;
+    }
+    onOpenChange(false);
+  }
+
+  function descartarCambios() {
+    const accion = descartePendiente;
+    setDescartePendiente(null);
+    if (accion === "cancelar-formulario") {
+      salirFormulario();
+      return;
+    }
+    if (accion === "cerrar-sheet") {
+      onOpenChange(false);
+    }
+  }
+
+  function cambiarConfirmacionDescarte(abiertoConfirmacion: boolean) {
+    if (!abiertoConfirmacion) setDescartePendiente(null);
+  }
 
   return (
-    <Sheet open={abierto} onOpenChange={onOpenChange}>
+    <Sheet
+      open={abierto}
+      onOpenChange={(siguienteAbierto, detalles) =>
+        solicitarCierre(siguienteAbierto, () => detalles.cancel())
+      }
+    >
       <SheetContent side="right" className="w-full gap-0 sm:max-w-xl">
         <SheetHeader className="border-b border-border px-5 py-4">
           <SheetTitle>
@@ -246,13 +330,10 @@ export function TercerosSheet({
             tercero={editando}
             tipoInicial={tipoInicial}
             opcionesCuentas={opcionesCuentas}
-            onCancelar={() => {
-              setCreando(false);
-              setEditando(null);
-            }}
+            onCancelar={solicitarCancelacionFormulario}
+            onEstadoFormulario={notificarEstadoFormulario}
             onGuardado={() => {
-              setCreando(false);
-              setEditando(null);
+              salirFormulario();
               router.refresh();
             }}
           />
@@ -366,6 +447,11 @@ export function TercerosSheet({
           </>
         )}
       </SheetContent>
+      <DialogoConfirmarDescarte
+        abierto={descartePendiente !== null}
+        onOpenChange={cambiarConfirmacionDescarte}
+        onDescartar={descartarCambios}
+      />
     </Sheet>
   );
 }
@@ -376,6 +462,7 @@ interface FormularioTerceroProps {
   tipoInicial: TipoTercero;
   opcionesCuentas: readonly { value: string; label: string }[];
   onCancelar: () => void;
+  onEstadoFormulario: (sucio: boolean, guardando: boolean) => void;
   onGuardado: () => void;
 }
 
@@ -385,21 +472,35 @@ function FormularioTercero({
   tipoInicial,
   opcionesCuentas,
   onCancelar,
+  onEstadoFormulario,
   onGuardado,
 }: FormularioTerceroProps) {
   const [form, setForm] = useState<FormTercero>(
+    formInicial(tercero, tipoInicial),
+  );
+  const [formReferencia, setFormReferencia] = useState<FormTercero>(
     formInicial(tercero, tipoInicial),
   );
   const [guardando, setGuardando] = useState(false);
   const [consultando, setConsultando] = useState(false);
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null);
   const [errorNombre, setErrorNombre] = useState<string | null>(null);
+  const enviandoRef = useRef(false);
 
   useEffect(() => {
-    setForm(formInicial(tercero, tipoInicial));
+    const inicial = formInicial(tercero, tipoInicial);
+    setForm(inicial);
+    setFormReferencia(inicial);
+    setGuardando(enviandoRef.current);
     setErrorGeneral(null);
     setErrorNombre(null);
   }, [tercero, tipoInicial]);
+
+  const hayCambios = formularioTieneCambios(form, formReferencia);
+
+  useEffect(() => {
+    onEstadoFormulario(hayCambios, guardando);
+  }, [guardando, hayCambios, onEstadoFormulario]);
 
   function actualizar<C extends keyof FormTercero>(
     campo: C,
@@ -449,7 +550,7 @@ function FormularioTercero({
 
   async function guardar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
-    if (guardando) return;
+    if (enviandoRef.current || guardando) return;
 
     if (form.nombre.trim() === "") {
       setErrorNombre("El nombre del tercero es obligatorio.");
@@ -458,6 +559,7 @@ function FormularioTercero({
 
     setErrorNombre(null);
     setErrorGeneral(null);
+    enviandoRef.current = true;
     setGuardando(true);
 
     const entrada: EntradaTercero = {
@@ -476,16 +578,21 @@ function FormularioTercero({
       activo: form.activo,
     };
 
-    const resultado = await guardarTerceroAction(entrada);
-    setGuardando(false);
+    try {
+      const resultado = await guardarTerceroAction(entrada);
 
-    if (!resultado.ok) {
-      setErrorGeneral(resultado.error);
-      return;
+      if (!resultado.ok) {
+        setErrorGeneral(resultado.error);
+        return;
+      }
+
+      toast.success(resultado.mensaje);
+      setFormReferencia(form);
+      onGuardado();
+    } finally {
+      enviandoRef.current = false;
+      setGuardando(false);
     }
-
-    toast.success(resultado.mensaje);
-    onGuardado();
   }
 
   return (
