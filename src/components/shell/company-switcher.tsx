@@ -148,7 +148,7 @@ export function CompanySwitcher({
             <IconBuilding className="size-4" />
           </span>
         )}
-        <span className="hidden min-w-0 max-w-[180px] truncate text-sm font-medium sm:inline">
+        <span className="hidden min-w-0 max-w-[180px] truncate text-sm font-medium md:inline">
           {empresaActiva?.nombreComercial ?? "Mis empresas"}
         </span>
         <IconChevronDown className="size-4 shrink-0 text-muted-foreground" />

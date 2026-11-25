@@ -76,7 +76,7 @@ export function UserMenu({ contexto }: UserMenuProps) {
             <Avatar size="sm">
               <AvatarFallback>{iniciales(nombreVisible)}</AvatarFallback>
             </Avatar>
-            <div className="hidden min-w-0 flex-col text-left sm:flex">
+            <div className="hidden min-w-0 flex-col text-left xl:flex">
               <span className="max-w-[140px] truncate text-sm leading-tight font-medium text-foreground">
                 {nombreVisible}
               </span>
@@ -84,7 +84,7 @@ export function UserMenu({ contexto }: UserMenuProps) {
                 {contexto.perfil.email}
               </span>
             </div>
-            <IconChevronDown className="hidden size-4 shrink-0 text-muted-foreground sm:block" />
+            <IconChevronDown className="hidden size-4 shrink-0 text-muted-foreground lg:block" />
           </Button>
         }
       />
