@@ -31,6 +31,10 @@ import { BarraLista } from "@/components/listas/barra-lista";
 import { PillEstado } from "@/components/listas/pill-estado";
 import { TablaLista } from "@/components/listas/tabla-lista";
 import { TarjetaLista } from "@/components/listas/tarjeta-lista";
+import {
+  DialogoConfirmarDescarte,
+  formularioTieneCambios,
+} from "@/components/operaciones/dialogos-cartera";
 import { BotonDescargar } from "@/components/reportes/boton-descargar";
 import { SelectCampo } from "@/components/select-campo";
 import { Button } from "@/components/ui/button";
@@ -87,8 +91,26 @@ interface LineaEntrada {
   credito: string;
 }
 
+interface FormularioAsientoManual {
+  fecha: string;
+  descripcion: string;
+  referencia: string;
+  lineas: string;
+}
+
 function lineaVacia(id: number): LineaEntrada {
   return { id, cuentaId: "", descripcion: "", debito: "", credito: "" };
+}
+
+function firmaLineasAsiento(lineas: readonly LineaEntrada[]): string {
+  return JSON.stringify(
+    lineas.map((linea) => ({
+      cuentaId: linea.cuentaId,
+      descripcion: linea.descripcion,
+      debito: linea.debito,
+      credito: linea.credito,
+    })),
+  );
 }
 
 function estadoLegible(estado: string): string {
@@ -132,7 +154,14 @@ export function DialogoAsientoManual({
     lineaVacia(2),
   ]);
   const [guardando, setGuardando] = useState(false);
+  const [accionGuardando, setAccionGuardando] = useState<
+    "borrador" | "contabilizar" | null
+  >(null);
   const [error, setError] = useState<string | null>(null);
+  const [formReferencia, setFormReferencia] =
+    useState<FormularioAsientoManual | null>(null);
+  const [confirmandoDescarte, setConfirmandoDescarte] = useState(false);
+  const enviandoRef = useRef(false);
 
   const cuentasConHijas = useMemo(() => {
     const padres = new Set<string>();
@@ -159,13 +188,27 @@ export function DialogoAsientoManual({
   );
 
   useEffect(() => {
-    if (!abierto) return;
-    setFecha(hoySantoDomingo());
-    setDescripcion(descripcionInicial);
-    setReferencia("");
-    setLineas([lineaVacia(1), lineaVacia(2)]);
+    if (!abierto) {
+      setConfirmandoDescarte(false);
+      return;
+    }
+
+    const lineasIniciales = [lineaVacia(1), lineaVacia(2)];
+    const inicial: FormularioAsientoManual = {
+      fecha: hoySantoDomingo(),
+      descripcion: descripcionInicial,
+      referencia: "",
+      lineas: firmaLineasAsiento(lineasIniciales),
+    };
+
+    setFecha(inicial.fecha);
+    setDescripcion(inicial.descripcion);
+    setReferencia(inicial.referencia);
+    setLineas(lineasIniciales);
+    setFormReferencia(inicial);
     siguienteId.current = 3;
-    setGuardando(false);
+    setGuardando(enviandoRef.current);
+    setAccionGuardando(null);
     setError(null);
   }, [abierto, descripcionInicial]);
 
@@ -183,6 +226,41 @@ export function DialogoAsientoManual({
     if (linea.cuentaId === "") return false;
     return unSoloLado(aNumero(linea.debito), aNumero(linea.credito));
   });
+
+  const estadoActual: FormularioAsientoManual = {
+    fecha,
+    descripcion,
+    referencia,
+    lineas: firmaLineasAsiento(lineas),
+  };
+  const hayCambios =
+    formReferencia !== null &&
+    formularioTieneCambios(estadoActual, formReferencia);
+
+  function solicitarCierre(
+    siguienteAbierto: boolean,
+    cancelarEvento?: () => void,
+  ) {
+    if (siguienteAbierto) {
+      onOpenChange(true);
+      return;
+    }
+    if (enviandoRef.current || guardando) {
+      cancelarEvento?.();
+      return;
+    }
+    if (hayCambios) {
+      cancelarEvento?.();
+      setConfirmandoDescarte(true);
+      return;
+    }
+    onOpenChange(false);
+  }
+
+  function descartarCambios() {
+    setConfirmandoDescarte(false);
+    onOpenChange(false);
+  }
 
   function actualizarLinea(
     id: number,
@@ -216,7 +294,7 @@ export function DialogoAsientoManual({
   }
 
   async function guardar(contabilizar: boolean) {
-    if (guardando) return;
+    if (enviandoRef.current || guardando) return;
 
     if (descripcion.trim() === "") {
       setError("La descripción del asiento es obligatoria.");
@@ -236,35 +314,47 @@ export function DialogoAsientoManual({
     }
 
     setError(null);
+    enviandoRef.current = true;
     setGuardando(true);
+    setAccionGuardando(contabilizar ? "contabilizar" : "borrador");
 
-    const resultado = await crearAsientoManualAction({
-      fecha,
-      descripcion,
-      referencia,
-      contabilizar,
-      lineas: lineasValidas.map((linea) => ({
-        cuentaId: linea.cuentaId,
-        descripcion: linea.descripcion,
-        debito: aNumero(linea.debito),
-        credito: aNumero(linea.credito),
-      })),
-    });
+    try {
+      const resultado = await crearAsientoManualAction({
+        fecha,
+        descripcion,
+        referencia,
+        contabilizar,
+        lineas: lineasValidas.map((linea) => ({
+          cuentaId: linea.cuentaId,
+          descripcion: linea.descripcion,
+          debito: aNumero(linea.debito),
+          credito: aNumero(linea.credito),
+        })),
+      });
 
-    setGuardando(false);
+      if (!resultado.ok) {
+        setError(resultado.error);
+        return;
+      }
 
-    if (!resultado.ok) {
-      setError(resultado.error);
-      return;
+      toast.success(resultado.mensaje);
+      setFormReferencia(estadoActual);
+      onOpenChange(false);
+      router.refresh();
+    } finally {
+      enviandoRef.current = false;
+      setGuardando(false);
+      setAccionGuardando(null);
     }
-
-    toast.success(resultado.mensaje);
-    onOpenChange(false);
-    router.refresh();
   }
 
   return (
-    <Dialog open={abierto} onOpenChange={onOpenChange}>
+    <Dialog
+      open={abierto}
+      onOpenChange={(siguienteAbierto, detalles) =>
+        solicitarCierre(siguienteAbierto, () => detalles.cancel())
+      }
+    >
       <DialogContent className="sm:max-w-4xl">
         <form
           className="flex flex-col gap-4"
@@ -443,7 +533,7 @@ export function DialogoAsientoManual({
               type="button"
               variant="outline"
               disabled={guardando}
-              onClick={() => onOpenChange(false)}
+              onClick={() => solicitarCierre(false)}
             >
               Cancelar
             </Button>
@@ -454,20 +544,37 @@ export function DialogoAsientoManual({
                 disabled={guardando || lineasValidas.length < 2}
                 onClick={() => void guardar(false)}
               >
-                Guardar borrador
+                {accionGuardando === "borrador" ? (
+                  <>
+                    <IconLoader2 className="size-4 animate-spin" />
+                    Guardando…
+                  </>
+                ) : (
+                  "Guardar borrador"
+                )}
               </Button>
             ) : null}
             <Button type="submit" disabled={guardando || !cuadra}>
-              {guardando ? (
-                <IconLoader2 className="size-4 animate-spin" />
+              {accionGuardando === "contabilizar" ? (
+                <>
+                  <IconLoader2 className="size-4 animate-spin" />
+                  Contabilizando…
+                </>
               ) : (
-                <IconCheck className="size-4" />
+                <>
+                  <IconCheck className="size-4" />
+                  Contabilizar
+                </>
               )}
-              Contabilizar
             </Button>
           </DialogFooter>
         </form>
       </DialogContent>
+      <DialogoConfirmarDescarte
+        abierto={confirmandoDescarte}
+        onOpenChange={setConfirmandoDescarte}
+        onDescartar={descartarCambios}
+      />
     </Dialog>
   );
 }
