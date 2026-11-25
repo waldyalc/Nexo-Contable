@@ -5,6 +5,7 @@ import {
   IconChevronDown,
   IconDots,
   IconDownload,
+  IconEye,
   IconFileInvoice,
   IconFileSpreadsheet,
   IconFileText,
@@ -38,7 +39,7 @@ import {
   DialogoAnular,
   DialogoRegistrarPago,
 } from "@/components/operaciones/dialogos-cartera";
-import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
+import { DocumentoDetalleDialog } from "@/components/operaciones/documento-detalle-dialog";
 import { SelectCampo } from "@/components/select-campo";
 import { TercerosSheet } from "@/components/terceros/terceros-sheet";
 import { Button } from "@/components/ui/button";
@@ -64,6 +65,7 @@ import {
   formatearMoneda,
   formatearPeriodoMes,
 } from "@/lib/formato";
+import type { CargadorDocumentoDetalle } from "@/lib/operaciones/consultas";
 import {
   type CuentaOpcion,
   type DocumentoAcreditable,
@@ -73,6 +75,7 @@ import {
   TIPOS_COMPROBANTE_DGII,
   type TerceroListado,
 } from "@/lib/operaciones/tipos";
+import type { EmpresaReporte } from "@/lib/reportes/exportar/tipos";
 
 const OPCIONES_ESTADO = [
   { value: "contabilizada", label: "Contabilizada" },
@@ -92,6 +95,7 @@ function etiquetaEstado(documento: DocumentoListado): string {
 
 export interface FacturacionVistaProps {
   empresaId: string;
+  empresa: EmpresaReporte;
   documentos: readonly DocumentoListado[];
   terceros: readonly TerceroListado[];
   cuentas: readonly CuentaOpcion[];
@@ -107,6 +111,7 @@ export interface FacturacionVistaProps {
   cuentaCxpDefaultId?: string | null;
   periodoInicial: string;
   moneda: "DOP" | "USD";
+  cargarDetalleDocumento: CargadorDocumentoDetalle;
 }
 
 /**
@@ -116,6 +121,7 @@ export interface FacturacionVistaProps {
  */
 export function FacturacionVista({
   empresaId,
+  empresa,
   documentos,
   terceros,
   cuentas,
@@ -131,6 +137,7 @@ export function FacturacionVista({
   cuentaCxpDefaultId,
   periodoInicial,
   moneda,
+  cargarDetalleDocumento,
 }: FacturacionVistaProps) {
   const router = useRouter();
   const [mes, setMes] = useState(periodoInicial);
@@ -145,6 +152,8 @@ export function FacturacionVista({
     null,
   );
   const [anularDocumento, setAnularDocumento] =
+    useState<DocumentoListado | null>(null);
+  const [detalleDocumento, setDetalleDocumento] =
     useState<DocumentoListado | null>(null);
 
   const filtrados = useMemo(() => {
@@ -198,12 +207,6 @@ export function FacturacionVista({
 
   return (
     <>
-      <EncabezadoPagina
-        titulo="Facturación"
-        descripcion="Facturas de venta con NCF de serie B o e-CF electrónico y formato 607."
-        migas={[{ etiqueta: "Operaciones" }, { etiqueta: "Facturación" }]}
-      />
-
       <TarjetaLista>
         <BarraLista
           titulo="Facturas emitidas"
@@ -383,6 +386,12 @@ export function FacturacionVista({
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-56">
                       <DropdownMenuItem
+                        onClick={() => setDetalleDocumento(documento)}
+                      >
+                        <IconEye className="size-4" />
+                        Ver detalle
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
                         disabled={
                           documento.estado !== "posted" || documento.saldo <= 0
                         }
@@ -432,6 +441,17 @@ export function FacturacionVista({
         terceros={terceros}
         cuentas={cuentas}
         tipoInicial="customer"
+      />
+
+      <DocumentoDetalleDialog
+        abierto={detalleDocumento !== null}
+        onOpenChange={(abierto) => {
+          if (!abierto) setDetalleDocumento(null);
+        }}
+        empresaId={empresaId}
+        documento={detalleDocumento}
+        empresa={empresa}
+        cargarDetalle={cargarDetalleDocumento}
       />
 
       <DialogoRegistrarPago
