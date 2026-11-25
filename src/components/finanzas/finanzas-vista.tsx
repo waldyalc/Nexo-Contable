@@ -2,7 +2,6 @@
 
 import {
   IconCoin,
-  IconDownload,
   IconLoader2,
   IconReceipt,
   IconScale,
@@ -18,7 +17,6 @@ import {
   consultarBalanceGeneralAction,
   consultarEstadoResultadosAction,
   consultarFlujoEfectivoAction,
-  exportarEstadoFinancieroAction,
 } from "@/app/(app)/finanzas/actions";
 import { DatePicker } from "@/components/date-picker";
 import {
@@ -29,9 +27,17 @@ import { BarraLista } from "@/components/listas/barra-lista";
 import { PillEstado } from "@/components/listas/pill-estado";
 import { TablaLista } from "@/components/listas/tabla-lista";
 import { TarjetaLista } from "@/components/listas/tarjeta-lista";
+import { BotonDescargar } from "@/components/reportes/boton-descargar";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { type Moneda, formatearMoneda } from "@/lib/formato";
+import { type Moneda, formatearFecha, formatearMoneda } from "@/lib/formato";
+import {
+  crearEmpresaReporte,
+  describirRangoFechas,
+  nombreArchivoConCorte,
+  nombreArchivoConPeriodo,
+  tablaAgrupadaReporte,
+} from "@/lib/reportes/adaptadores";
 
 const ETIQUETA_CLASIFICACION: Record<string, string> = {
   asset: "ACTIVOS",
@@ -63,26 +69,11 @@ interface FilaAgrupada {
   monto: number;
 }
 
-function descargarBase64(archivo: string, base64: string) {
-  const binario = atob(base64);
-  const bytes = new Uint8Array(binario.length);
-  for (let indice = 0; indice < binario.length; indice += 1) {
-    bytes[indice] = binario.charCodeAt(indice);
-  }
-  const blob = new Blob([bytes], {
-    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  });
-  const url = URL.createObjectURL(blob);
-  const enlace = document.createElement("a");
-  enlace.href = url;
-  enlace.download = archivo;
-  enlace.click();
-  URL.revokeObjectURL(url);
-}
-
 export interface FinanzasVistaProps {
   empresaId: string;
   empresaNombre: string;
+  empresaRazonSocial: string;
+  empresaRnc: string;
   moneda: Moneda;
   rangoInicial: RangoFechas;
   fechaCorteInicial: string;
@@ -100,6 +91,8 @@ export function FinanzasVista(props: FinanzasVistaProps) {
 
 function FinanzasVistaContenido({
   empresaNombre,
+  empresaRazonSocial,
+  empresaRnc,
   moneda,
   rangoInicial,
   fechaCorteInicial,
@@ -118,21 +111,24 @@ function FinanzasVistaContenido({
   );
   const [resultadoEr, setResultadoEr] = useState(resultadoInicial);
   const [cargandoEr, setCargandoEr] = useState(false);
-  const [exportandoEr, setExportandoEr] = useState(false);
+  const [rangoErConsultado, setRangoErConsultado] =
+    useState<RangoFechas>(rangoInicial);
 
   const [fechaCorte, setFechaCorte] = useState(fechaCorteInicial);
   const [filasBg, setFilasBg] =
     useState<readonly FilaBalanceGeneral[]>(balanceInicial);
   const [resultadoBg, setResultadoBg] = useState(resultadoBalanceInicial);
   const [cargandoBg, setCargandoBg] = useState(false);
-  const [exportandoBg, setExportandoBg] = useState(false);
+  const [fechaCorteConsultada, setFechaCorteConsultada] =
+    useState(fechaCorteInicial);
 
   const [rangoFe, setRangoFe] = useState<RangoFechas>(rangoInicial);
   const [filasFe, setFilasFe] =
     useState<readonly FilaFlujoEfectivo[]>(flujoInicial);
   const [resultadoFe, setResultadoFe] = useState(resultadoFlujoInicial);
   const [cargandoFe, setCargandoFe] = useState(false);
-  const [exportandoFe, setExportandoFe] = useState(false);
+  const [rangoFeConsultado, setRangoFeConsultado] =
+    useState<RangoFechas>(rangoInicial);
 
   const filasErVista = useMemo(() => {
     if (filasEr.length === 0) return [];
@@ -309,6 +305,71 @@ function FinanzasVistaContenido({
     return filas;
   }, [filasFe]);
 
+  const empresaReporte = useMemo(
+    () =>
+      crearEmpresaReporte({
+        nombreComercial: empresaNombre,
+        razonSocial: empresaRazonSocial,
+        rnc: empresaRnc,
+        moneda,
+      }),
+    [empresaNombre, empresaRazonSocial, empresaRnc, moneda],
+  );
+
+  const tablaEstadoResultados = useMemo(
+    () =>
+      tablaAgrupadaReporte({
+        titulo: "Estado de resultados",
+        subtitulo: describirRangoFechas(
+          rangoErConsultado.desde,
+          rangoErConsultado.hasta,
+        ),
+        empresa: empresaReporte,
+        filas: filasErVista,
+      }),
+    [empresaReporte, filasErVista, rangoErConsultado],
+  );
+
+  const tablaBalanceGeneral = useMemo(
+    () =>
+      tablaAgrupadaReporte({
+        titulo: "Balance general",
+        subtitulo: `Fecha de corte: ${formatearFecha(fechaCorteConsultada)}`,
+        empresa: empresaReporte,
+        filas: filasBgVista,
+      }),
+    [empresaReporte, fechaCorteConsultada, filasBgVista],
+  );
+
+  const tablaFlujoEfectivo = useMemo(
+    () =>
+      tablaAgrupadaReporte({
+        titulo: "Flujo de efectivo",
+        subtitulo: describirRangoFechas(
+          rangoFeConsultado.desde,
+          rangoFeConsultado.hasta,
+        ),
+        empresa: empresaReporte,
+        filas: filasFeVista,
+      }),
+    [empresaReporte, filasFeVista, rangoFeConsultado],
+  );
+
+  const archivoEstadoResultados = nombreArchivoConPeriodo(
+    "estado-de-resultados",
+    rangoErConsultado.desde,
+    rangoErConsultado.hasta,
+  );
+  const archivoBalanceGeneral = nombreArchivoConCorte(
+    "balance-general",
+    fechaCorteConsultada,
+  );
+  const archivoFlujoEfectivo = nombreArchivoConPeriodo(
+    "flujo-de-efectivo",
+    rangoFeConsultado.desde,
+    rangoFeConsultado.hasta,
+  );
+
   function validarRango(rango: RangoFechas): boolean {
     if (rango.desde === "" || rango.hasta === "") {
       toast.error("Selecciona el rango de fechas.");
@@ -334,25 +395,7 @@ function FinanzasVistaContenido({
 
     setFilasEr(resultado.filas);
     setResultadoEr(resultado.resultado);
-  }
-
-  async function exportarEr() {
-    if (!validarRango(rangoEr)) return;
-    setExportandoEr(true);
-    const resultado = await exportarEstadoFinancieroAction({
-      tipo: "estado_resultados",
-      desde: rangoEr.desde,
-      hasta: rangoEr.hasta,
-    });
-    setExportandoEr(false);
-
-    if (!resultado.ok) {
-      toast.error(resultado.error);
-      return;
-    }
-
-    descargarBase64(resultado.archivo, resultado.base64);
-    toast.success("Estado de resultados exportado.");
+    setRangoErConsultado(rangoEr);
   }
 
   async function consultarBg() {
@@ -372,28 +415,7 @@ function FinanzasVistaContenido({
 
     setFilasBg(resultado.filas);
     setResultadoBg(resultado.resultado);
-  }
-
-  async function exportarBg() {
-    if (fechaCorte === "") {
-      toast.error("Selecciona la fecha de corte.");
-      return;
-    }
-
-    setExportandoBg(true);
-    const resultado = await exportarEstadoFinancieroAction({
-      tipo: "balance_general",
-      fechaCorte,
-    });
-    setExportandoBg(false);
-
-    if (!resultado.ok) {
-      toast.error(resultado.error);
-      return;
-    }
-
-    descargarBase64(resultado.archivo, resultado.base64);
-    toast.success("Balance general exportado.");
+    setFechaCorteConsultada(fechaCorte);
   }
 
   async function consultarFe() {
@@ -409,25 +431,7 @@ function FinanzasVistaContenido({
 
     setFilasFe(resultado.filas);
     setResultadoFe(resultado.resultado);
-  }
-
-  async function exportarFe() {
-    if (!validarRango(rangoFe)) return;
-    setExportandoFe(true);
-    const resultado = await exportarEstadoFinancieroAction({
-      tipo: "flujo_efectivo",
-      desde: rangoFe.desde,
-      hasta: rangoFe.hasta,
-    });
-    setExportandoFe(false);
-
-    if (!resultado.ok) {
-      toast.error(resultado.error);
-      return;
-    }
-
-    descargarBase64(resultado.archivo, resultado.base64);
-    toast.success("Flujo de efectivo exportado.");
+    setRangoFeConsultado(rangoFe);
   }
 
   function claseFila(tipo: TipoFila): string {
@@ -510,18 +514,10 @@ function FinanzasVistaContenido({
                   )}
                   Consultar
                 </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => void exportarEr()}
-                  disabled={exportandoEr}
-                >
-                  {exportandoEr ? (
-                    <IconLoader2 className="size-4 animate-spin" />
-                  ) : (
-                    <IconDownload className="size-4" />
-                  )}
-                  Exportar Excel
-                </Button>
+                <BotonDescargar
+                  tabla={tablaEstadoResultados}
+                  nombreArchivo={archivoEstadoResultados}
+                />
               </>
             }
             filtros={
@@ -578,18 +574,10 @@ function FinanzasVistaContenido({
                   )}
                   Consultar
                 </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => void exportarBg()}
-                  disabled={exportandoBg}
-                >
-                  {exportandoBg ? (
-                    <IconLoader2 className="size-4 animate-spin" />
-                  ) : (
-                    <IconDownload className="size-4" />
-                  )}
-                  Exportar Excel
-                </Button>
+                <BotonDescargar
+                  tabla={tablaBalanceGeneral}
+                  nombreArchivo={archivoBalanceGeneral}
+                />
               </>
             }
             filtros={
@@ -634,18 +622,10 @@ function FinanzasVistaContenido({
                   )}
                   Consultar
                 </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => void exportarFe()}
-                  disabled={exportandoFe}
-                >
-                  {exportandoFe ? (
-                    <IconLoader2 className="size-4 animate-spin" />
-                  ) : (
-                    <IconDownload className="size-4" />
-                  )}
-                  Exportar Excel
-                </Button>
+                <BotonDescargar
+                  tabla={tablaFlujoEfectivo}
+                  nombreArchivo={archivoFlujoEfectivo}
+                />
               </>
             }
             filtros={

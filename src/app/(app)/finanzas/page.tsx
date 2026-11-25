@@ -189,6 +189,8 @@ async function FinanzasContenido({
         key={empresa.id}
         empresaId={empresa.id}
         empresaNombre={empresa.nombreComercial}
+        empresaRazonSocial={empresa.razonSocial}
+        empresaRnc={empresa.rnc}
         moneda={moneda}
         rangoInicial={rangoInicial}
         fechaCorteInicial={hoy}
