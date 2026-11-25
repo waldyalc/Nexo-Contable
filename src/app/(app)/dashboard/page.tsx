@@ -2,7 +2,14 @@ import { IconBuilding, IconBuildingStore, IconPlus } from "@tabler/icons-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import Link from "next/link";
+import { Suspense } from "react";
 
+import {
+  EsqueletoGrafico,
+  EsqueletoLista,
+  EsqueletoTabla,
+  EsqueletoTarjetas,
+} from "@/components/carga/esqueletos";
 import {
   type AsientoReciente,
   DashboardVista,
@@ -17,7 +24,12 @@ import { TarjetaLista } from "@/components/listas/tarjeta-lista";
 import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { ETIQUETAS_ROL } from "@/components/shell/navegacion";
 import { Button } from "@/components/ui/button";
-import { obtenerContextoApp } from "@/lib/auth/sesion";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  type ContextoApp,
+  type EmpresaAsignada,
+  obtenerContextoApp,
+} from "@/lib/auth/sesion";
 import { type Moneda, aNumero, hoySantoDomingo } from "@/lib/formato";
 import { createClient } from "@/lib/supabase/server";
 
@@ -143,66 +155,57 @@ function aResumen(fila: {
   };
 }
 
-export default async function DashboardPage({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  const contexto = await obtenerContextoApp();
-  const params = await searchParams;
-  const rango = leerRango(params);
-  const empresa = contexto.empresaActiva;
-  const moneda: Moneda = empresa?.monedaFuncional === "USD" ? "USD" : "DOP";
+function EsqueletoDatosDashboard() {
+  return (
+    <>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Skeleton className="h-9 w-full rounded-[10px] sm:w-64" />
+          <Skeleton className="h-9 w-24 rounded-[10px]" />
+          <Skeleton className="h-9 w-24 rounded-[10px]" />
+        </div>
+        <Skeleton className="h-3 w-44 rounded-[6px]" />
+      </div>
 
-  const encabezado = (
-    <EncabezadoPagina
-      titulo="Resumen"
-      descripcion={
-        empresa
-          ? `${empresa.nombreComercial} · ${ETIQUETAS_ROL[empresa.rol]}`
-          : "Bienvenido a Nexo Contable."
-      }
-      migas={[{ etiqueta: "General" }, { etiqueta: "Resumen" }]}
-      acciones={
-        contexto.esAdminGlobal ? (
-          <Button variant="outline" render={<Link href="/empresas" />}>
-            <IconBuilding className="size-4" />
-            Gestionar empresas
-          </Button>
-        ) : undefined
-      }
-    />
+      <EsqueletoTarjetas cantidad={6} className="xl:grid-cols-3" />
+
+      <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+        <EsqueletoGrafico
+          titulo="Ingresos vs. gastos"
+          descripcion="Últimos 6 meses de la empresa activa."
+          alto={280}
+        />
+        <EsqueletoLista
+          titulo="Composición del resultado"
+          descripcion="Según el estado de resultados del rango."
+          filas={4}
+          conIconos={false}
+        />
+      </div>
+
+      <EsqueletoTabla
+        titulo="Últimos asientos"
+        descripcion="Movimientos contables más recientes de la empresa."
+        columnas={4}
+        filas={8}
+      />
+    </>
   );
+}
 
-  if (!empresa) {
-    return (
-      <>
-        {encabezado}
-        <TarjetaLista>
-          <div className="flex flex-col items-center gap-3 px-6 py-14 text-center">
-            <span className="flex size-12 items-center justify-center rounded-full bg-secondary text-primary">
-              <IconBuildingStore className="size-6" />
-            </span>
-            <h2 className="font-display text-lg font-semibold tracking-[-0.02em] text-foreground">
-              Aún no hay una empresa activa
-            </h2>
-            <p className="max-w-md text-sm text-muted-foreground">
-              {contexto.esAdminGlobal
-                ? "Crea la primera empresa de tu firma para comenzar a contabilizar facturas, gastos y comprobantes DGII."
-                : "Tu usuario todavía no tiene empresas asignadas. Solicita acceso al administrador de tu firma."}
-            </p>
-            {contexto.esAdminGlobal ? (
-              <Button render={<Link href="/empresas?nueva=1" />}>
-                <IconPlus className="size-4" />
-                Crear empresa
-              </Button>
-            ) : null}
-          </div>
-        </TarjetaLista>
-      </>
-    );
-  }
+interface SeccionDashboardProps {
+  contexto: ContextoApp;
+  empresa: EmpresaAsignada;
+  rango: RangoFechas;
+  moneda: Moneda;
+}
 
+async function SeccionDashboard({
+  contexto,
+  empresa,
+  rango,
+  moneda,
+}: SeccionDashboardProps) {
   const rol = contexto.esAdminGlobal ? "admin_global" : empresa.rol;
   const puedeVerReportes = ROLES_REPORTES.has(rol);
   const supabase = await createClient();
@@ -346,10 +349,80 @@ export default async function DashboardPage({
     error,
   };
 
+  return <DashboardVista key={empresa.id} {...props} />;
+}
+
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const contexto = await obtenerContextoApp();
+  const params = await searchParams;
+  const rango = leerRango(params);
+  const empresa = contexto.empresaActiva;
+  const moneda: Moneda = empresa?.monedaFuncional === "USD" ? "USD" : "DOP";
+
+  const encabezado = (
+    <EncabezadoPagina
+      titulo="Resumen"
+      descripcion={
+        empresa
+          ? `${empresa.nombreComercial} · ${ETIQUETAS_ROL[empresa.rol]}`
+          : "Bienvenido a Nexo Contable."
+      }
+      migas={[{ etiqueta: "General" }, { etiqueta: "Resumen" }]}
+      acciones={
+        contexto.esAdminGlobal ? (
+          <Button variant="outline" render={<Link href="/empresas" />}>
+            <IconBuilding className="size-4" />
+            Gestionar empresas
+          </Button>
+        ) : undefined
+      }
+    />
+  );
+
+  if (!empresa) {
+    return (
+      <>
+        {encabezado}
+        <TarjetaLista>
+          <div className="flex flex-col items-center gap-3 px-6 py-14 text-center">
+            <span className="flex size-12 items-center justify-center rounded-full bg-secondary text-primary">
+              <IconBuildingStore className="size-6" />
+            </span>
+            <h2 className="font-display text-lg font-semibold tracking-[-0.02em] text-foreground">
+              Aún no hay una empresa activa
+            </h2>
+            <p className="max-w-md text-sm text-muted-foreground">
+              {contexto.esAdminGlobal
+                ? "Crea la primera empresa de tu firma para comenzar a contabilizar facturas, gastos y comprobantes DGII."
+                : "Tu usuario todavía no tiene empresas asignadas. Solicita acceso al administrador de tu firma."}
+            </p>
+            {contexto.esAdminGlobal ? (
+              <Button render={<Link href="/empresas?nueva=1" />}>
+                <IconPlus className="size-4" />
+                Crear empresa
+              </Button>
+            ) : null}
+          </div>
+        </TarjetaLista>
+      </>
+    );
+  }
+
   return (
     <>
       {encabezado}
-      <DashboardVista key={empresa.id} {...props} />
+      <Suspense fallback={<EsqueletoDatosDashboard />}>
+        <SeccionDashboard
+          contexto={contexto}
+          empresa={empresa}
+          rango={rango}
+          moneda={moneda}
+        />
+      </Suspense>
     </>
   );
 }
