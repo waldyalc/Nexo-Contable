@@ -1,9 +1,12 @@
 "use client";
 
 import {
+  IconAdjustments,
+  IconBook2,
   IconCoin,
   IconLoader2,
   IconReceipt,
+  IconReportAnalytics,
   IconScale,
   IconSearch,
 } from "@tabler/icons-react";
@@ -11,6 +14,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import {
+  type CuentaContable,
   type FilaBalanceGeneral,
   type FilaEstadoResultados,
   type FilaFlujoEfectivo,
@@ -23,6 +27,9 @@ import {
   DateRangePicker,
   type RangoFechas,
 } from "@/components/date-range-picker";
+import { BalanceComprobacionTab } from "@/components/finanzas/balance-comprobacion-tab";
+import { CambiosPatrimonioTab } from "@/components/finanzas/cambios-patrimonio-tab";
+import { MayorCuentaTab } from "@/components/finanzas/mayor-cuenta-tab";
 import { BarraLista } from "@/components/listas/barra-lista";
 import { PillEstado } from "@/components/listas/pill-estado";
 import { TablaLista } from "@/components/listas/tabla-lista";
@@ -75,6 +82,7 @@ export interface FinanzasVistaProps {
   empresaRazonSocial: string;
   empresaRnc: string;
   moneda: Moneda;
+  cuentas: readonly CuentaContable[];
   rangoInicial: RangoFechas;
   fechaCorteInicial: string;
   estadoResultadosInicial: readonly FilaEstadoResultados[];
@@ -94,6 +102,7 @@ function FinanzasVistaContenido({
   empresaRazonSocial,
   empresaRnc,
   moneda,
+  cuentas,
   rangoInicial,
   fechaCorteInicial,
   estadoResultadosInicial,
@@ -333,7 +342,7 @@ function FinanzasVistaContenido({
   const tablaBalanceGeneral = useMemo(
     () =>
       tablaAgrupadaReporte({
-        titulo: "Balance general",
+        titulo: "Estado de situación financiera",
         subtitulo: `Fecha de corte: ${formatearFecha(fechaCorteConsultada)}`,
         empresa: empresaReporte,
         filas: filasBgVista,
@@ -361,7 +370,7 @@ function FinanzasVistaContenido({
     rangoErConsultado.hasta,
   );
   const archivoBalanceGeneral = nombreArchivoConCorte(
-    "balance-general",
+    "estado-de-situacion-financiera",
     fechaCorteConsultada,
   );
   const archivoFlujoEfectivo = nombreArchivoConPeriodo(
@@ -485,13 +494,25 @@ function FinanzasVistaContenido({
             <IconReceipt className="size-4" />
             Estado de resultados
           </TabsTrigger>
-          <TabsTrigger value="balance">
+          <TabsTrigger value="situacion">
             <IconScale className="size-4" />
-            Balance general
+            Estado de situación financiera
+          </TabsTrigger>
+          <TabsTrigger value="balance">
+            <IconAdjustments className="size-4" />
+            Balance de comprobación
           </TabsTrigger>
           <TabsTrigger value="flujo">
             <IconCoin className="size-4" />
             Flujo de efectivo
+          </TabsTrigger>
+          <TabsTrigger value="patrimonio">
+            <IconReportAnalytics className="size-4" />
+            Cambios en el patrimonio
+          </TabsTrigger>
+          <TabsTrigger value="mayor">
+            <IconBook2 className="size-4" />
+            Mayor de cuenta
           </TabsTrigger>
         </TabsList>
       </div>
@@ -542,10 +563,10 @@ function FinanzasVistaContenido({
         </TarjetaLista>
       </TabsContent>
 
-      <TabsContent value="balance">
+      <TabsContent value="situacion">
         <TarjetaLista>
           <BarraLista
-            titulo="Balance general"
+            titulo="Estado de situación financiera"
             descripcion={
               <span className="flex flex-wrap items-center gap-2">
                 <span className="tabular-nums">
@@ -597,11 +618,19 @@ function FinanzasVistaContenido({
               vacio={{
                 titulo: "Sin saldos a la fecha de corte",
                 descripcion:
-                  "Registra asientos contabilizados para construir el balance general.",
+                  "Registra asientos contabilizados para construir el estado de situación financiera.",
               }}
             />
           </BarraLista>
         </TarjetaLista>
+      </TabsContent>
+
+      <TabsContent value="balance">
+        <BalanceComprobacionTab
+          moneda={moneda}
+          empresa={empresaReporte}
+          rangoInicial={rangoInicial}
+        />
       </TabsContent>
 
       <TabsContent value="flujo">
@@ -648,6 +677,23 @@ function FinanzasVistaContenido({
             />
           </BarraLista>
         </TarjetaLista>
+      </TabsContent>
+
+      <TabsContent value="patrimonio">
+        <CambiosPatrimonioTab
+          moneda={moneda}
+          empresa={empresaReporte}
+          rangoInicial={rangoInicial}
+        />
+      </TabsContent>
+
+      <TabsContent value="mayor">
+        <MayorCuentaTab
+          cuentas={cuentas}
+          moneda={moneda}
+          empresa={empresaReporte}
+          rangoInicial={rangoInicial}
+        />
       </TabsContent>
     </Tabs>
   );

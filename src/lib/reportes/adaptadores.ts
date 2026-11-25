@@ -331,3 +331,55 @@ export function tablaBalanzaComprobacionReporte(entrada: {
     ],
   };
 }
+
+export interface FilaCambiosPatrimonioReporte {
+  tipoFila: string;
+  codigo: string;
+  nombre: string;
+  saldoInicial: number;
+  debitos: number;
+  creditos: number;
+  movimientoNeto: number;
+  saldoFinal: number;
+}
+
+function estiloFilaCambiosPatrimonio(
+  tipoFila: string,
+): "normal" | "subtotal" | "total" {
+  if (tipoFila === "resultado") return "subtotal";
+  if (tipoFila === "total") return "total";
+  return "normal";
+}
+
+export function tablaCambiosPatrimonioReporte(entrada: {
+  subtitulo?: string;
+  empresa: EmpresaReporte;
+  filas: readonly FilaCambiosPatrimonioReporte[];
+}): TablaReporte {
+  return {
+    titulo: "Cambios en el patrimonio",
+    subtitulo: entrada.subtitulo,
+    empresa: entrada.empresa,
+    columnas: [
+      { clave: "codigo", titulo: "Código", tipo: "texto" },
+      { clave: "cuenta", titulo: "Cuenta", tipo: "texto" },
+      { clave: "saldoInicial", titulo: "Saldo inicial", tipo: "dinero" },
+      { clave: "debitos", titulo: "Débitos", tipo: "dinero" },
+      { clave: "creditos", titulo: "Créditos", tipo: "dinero" },
+      { clave: "movimientoNeto", titulo: "Movimiento neto", tipo: "dinero" },
+      { clave: "saldoFinal", titulo: "Saldo final", tipo: "dinero" },
+    ],
+    filas: entrada.filas.map((fila) => ({
+      celdas: {
+        codigo: fila.codigo || null,
+        cuenta: fila.nombre,
+        saldoInicial: redondearCentavos(fila.saldoInicial),
+        debitos: redondearCentavos(fila.debitos),
+        creditos: redondearCentavos(fila.creditos),
+        movimientoNeto: redondearCentavos(fila.movimientoNeto),
+        saldoFinal: redondearCentavos(fila.saldoFinal),
+      },
+      estilo: estiloFilaCambiosPatrimonio(fila.tipoFila),
+    })),
+  };
+}

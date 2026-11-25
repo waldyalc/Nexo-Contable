@@ -7,6 +7,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import type {
+  CuentaContable,
   FilaBalanceGeneral,
   FilaEstadoResultados,
   FilaFlujoEfectivo,
@@ -21,6 +22,7 @@ import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { Button } from "@/components/ui/button";
 import { type EmpresaAsignada, obtenerContextoApp } from "@/lib/auth/sesion";
 import { type Moneda, aNumero, hoySantoDomingo } from "@/lib/formato";
+import { paginarConsulta } from "@/lib/supabase/paginar";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata = {
@@ -49,8 +51,8 @@ function EstadoSinEmpresa() {
           Selecciona una empresa
         </h2>
         <p className="max-w-md text-sm text-muted-foreground">
-          Los estados financieros se calculan por empresa. Elige o crea una
-          empresa para consultar sus resultados, balance y flujo de efectivo.
+          Los informes financieros se calculan por empresa. Elige o crea una
+          empresa para consultar sus estados, balance de comprobación y mayor.
         </p>
         <Button render={<Link href="/empresas" />}>
           <IconReportAnalytics className="size-4" />
@@ -80,6 +82,20 @@ function EstadoSinAcceso() {
   );
 }
 
+interface CuentaFila {
+  id: string;
+  codigo: string;
+  nombre: string;
+  padre_id: string | null;
+  clasificacion: string;
+  naturaleza: string;
+  nivel: number;
+  es_agrupacion: boolean;
+  activa: boolean;
+  es_equivalente_efectivo: boolean;
+  categoria_flujo_efectivo: string;
+}
+
 interface RangoInicial {
   desde: string;
   hasta: string;
@@ -95,7 +111,7 @@ interface FinanzasContenidoProps {
 function EsqueletoFinanzas() {
   return (
     <div className="flex flex-col gap-3">
-      <EsqueletoPestanas cantidad={3} />
+      <EsqueletoPestanas cantidad={6} />
       <EsqueletoTabla
         titulo="Estados financieros"
         descripcion="Cargando los reportes de la empresa…"
@@ -116,7 +132,7 @@ async function FinanzasContenido({
 }: FinanzasContenidoProps) {
   const supabase = await createClient();
 
-  const [resultadosRespuesta, balanceRespuesta, flujoRespuesta] =
+  const [resultadosRespuesta, balanceRespuesta, flujoRespuesta, cuentasFilas] =
     await Promise.all([
       supabase.rpc("reporte_estado_resultados", {
         p_empresa_id: empresa.id,
@@ -131,6 +147,17 @@ async function FinanzasContenido({
         p_empresa_id: empresa.id,
         p_desde: rangoInicial.desde,
         p_hasta: rangoInicial.hasta,
+      }),
+      paginarConsulta<CuentaFila>(async (desde, hasta) => {
+        const { data, error } = await supabase
+          .from("cuentas")
+          .select(
+            "id, codigo, nombre, padre_id, clasificacion, naturaleza, nivel, es_agrupacion, activa, es_equivalente_efectivo, categoria_flujo_efectivo",
+          )
+          .eq("empresa_id", empresa.id)
+          .order("codigo", { ascending: true })
+          .range(desde, hasta);
+        return { data: (data as CuentaFila[] | null) ?? null, error };
       }),
     ]);
 
@@ -163,6 +190,20 @@ async function FinanzasContenido({
     }),
   );
 
+  const cuentas: CuentaContable[] = cuentasFilas.map((fila) => ({
+    id: fila.id,
+    codigo: fila.codigo,
+    nombre: fila.nombre,
+    padreId: fila.padre_id,
+    clasificacion: fila.clasificacion,
+    naturaleza: fila.naturaleza,
+    nivel: fila.nivel,
+    esAgrupacion: fila.es_agrupacion,
+    activa: fila.activa,
+    esEquivalenteEfectivo: fila.es_equivalente_efectivo,
+    categoriaFlujoEfectivo: fila.categoria_flujo_efectivo,
+  }));
+
   const resultado = calcularResultado(estadoResultados);
   const resultadoFlujo = flujoEfectivo.reduce(
     (acumulado, fila) => acumulado + fila.monto,
@@ -192,6 +233,7 @@ async function FinanzasContenido({
         empresaRazonSocial={empresa.razonSocial}
         empresaRnc={empresa.rnc}
         moneda={moneda}
+        cuentas={cuentas}
         rangoInicial={rangoInicial}
         fechaCorteInicial={hoy}
         estadoResultadosInicial={estadoResultados}

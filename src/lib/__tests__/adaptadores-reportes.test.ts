@@ -8,7 +8,9 @@ import {
   nombreArchivoConPeriodo,
   tablaAgrupadaReporte,
   tablaBalanzaComprobacionReporte,
+  tablaCambiosPatrimonioReporte,
   tablaLibroDiarioReporte,
+  tablaLibroMayorReporte,
 } from "@/lib/reportes/adaptadores";
 import { tablaAExcel } from "@/lib/reportes/exportar/excel";
 import { tablaAPdf } from "@/lib/reportes/exportar/pdf";
@@ -43,6 +45,45 @@ function tablaEstadoSintetica() {
         monto: 1250.75,
       },
       { tipo: "total", codigo: "", nombre: "Resultado neto", monto: 1250.75 },
+    ],
+  });
+}
+
+function tablaCambiosPatrimonioSintetica() {
+  return tablaCambiosPatrimonioReporte({
+    subtitulo: "Del 01/01/2026 al 31/12/2026",
+    empresa: EMPRESA,
+    filas: [
+      {
+        tipoFila: "cuenta",
+        codigo: "3-01-001",
+        nombre: "Capital social",
+        saldoInicial: 10000,
+        debitos: 3000,
+        creditos: 3000,
+        movimientoNeto: 0,
+        saldoFinal: 10000,
+      },
+      {
+        tipoFila: "resultado",
+        codigo: "",
+        nombre: "Resultado del período",
+        saldoInicial: 0,
+        debitos: 2000,
+        creditos: 4000,
+        movimientoNeto: 2000,
+        saldoFinal: 2000,
+      },
+      {
+        tipoFila: "total",
+        codigo: "",
+        nombre: "Total cambios en el patrimonio",
+        saldoInicial: 10000,
+        debitos: 5000,
+        creditos: 7000,
+        movimientoNeto: 2000,
+        saldoFinal: 12000,
+      },
     ],
   });
 }
@@ -162,6 +203,54 @@ describe("adaptadores de reportes exportables", () => {
     expect(balanza.filas.at(-1)?.celdas.saldoActual).toBe(-10);
   });
 
+  it("convierte mayor y cambios en el patrimonio a tablas exportables", () => {
+    const mayor = tablaLibroMayorReporte({
+      subtitulo: "Del 01/11/2026 al 30/11/2026 · Cuenta: 1-01-001 · Caja",
+      empresa: EMPRESA,
+      filas: [
+        {
+          fecha: "2026-11-05",
+          asientoNumero: "JE-2026-00001",
+          referencia: "FAC-1",
+          descripcion: "Cobro de prueba",
+          debito: 100.5,
+          credito: 0,
+          saldo: 100.5,
+        },
+      ],
+    });
+
+    expect(mayor.titulo).toBe("Libro mayor");
+    expect(mayor.columnas.map((columna) => columna.tipo)).toEqual([
+      "fecha",
+      "texto",
+      "texto",
+      "dinero",
+      "dinero",
+      "dinero",
+    ]);
+    expect(mayor.filas[0]?.celdas.debito).toBe(100.5);
+    expect(mayor.filas[0]?.celdas.credito).toBeNull();
+    expect(mayor.filas[0]?.celdas.saldo).toBe(100.5);
+
+    const cambios = tablaCambiosPatrimonioSintetica();
+
+    expect(cambios.titulo).toBe("Cambios en el patrimonio");
+    expect(cambios.columnas).toHaveLength(7);
+    expect(cambios.columnas.slice(2).map((columna) => columna.tipo)).toEqual([
+      "dinero",
+      "dinero",
+      "dinero",
+      "dinero",
+      "dinero",
+    ]);
+    expect(cambios.filas[0]?.estilo).toBe("normal");
+    expect(cambios.filas[1]?.estilo).toBe("subtotal");
+    expect(cambios.filas[2]?.estilo).toBe("total");
+    expect(cambios.filas[2]?.celdas.movimientoNeto).toBe(2000);
+    expect(cambios.filas[2]?.celdas.saldoFinal).toBe(12000);
+  });
+
   it("genera un Excel real del estado de resultados con datos sintéticos", async () => {
     const buffer = await tablaAExcel(tablaEstadoSintetica(), GENERADO_EN);
     const libro = new ExcelJS.Workbook();
@@ -181,6 +270,35 @@ describe("adaptadores de reportes exportables", () => {
 
   it("genera un PDF real del mismo reporte sintético", async () => {
     const blob = await tablaAPdf(tablaEstadoSintetica(), GENERADO_EN);
+    const contenido = await blob.arrayBuffer();
+    const bytes = new Uint8Array(contenido);
+
+    expect(blob.size).toBeGreaterThan(0);
+    expect(String.fromCharCode(...bytes.slice(0, 4))).toBe("%PDF");
+  });
+
+  it("genera Excel y PDF reales de cambios en el patrimonio", async () => {
+    const tabla = tablaCambiosPatrimonioSintetica();
+    const buffer = await tablaAExcel(tabla, GENERADO_EN);
+    const libro = new ExcelJS.Workbook();
+    await libro.xlsx.load(new Uint8Array(buffer).buffer);
+    const hoja = libro.getWorksheet("Reporte");
+
+    expect(buffer.byteLength).toBeGreaterThan(0);
+    expect(hoja?.getCell("A1").value).toBe("Empresa Sintética");
+    expect(hoja?.getCell("A2").value).toBe(
+      "Razón social: Empresa Sintética SRL · RNC: 123-45678-9",
+    );
+    expect(hoja?.getCell("A3").value).toBe("Cambios en el patrimonio");
+    expect(hoja?.getCell("A4").value).toBe("Del 01/01/2026 al 31/12/2026");
+    expect(hoja?.getCell("C8").value).toBe(10000);
+    expect(hoja?.getCell("D8").value).toBe(3000);
+    expect(hoja?.getCell("E8").value).toBe(3000);
+    expect(hoja?.getCell("F10").value).toBe(2000);
+    expect(hoja?.getCell("G10").value).toBe(12000);
+    expect(hoja?.getCell("C8").numFmt).toBe('"RD$" #,##0.00');
+
+    const blob = await tablaAPdf(tabla, GENERADO_EN);
     const contenido = await blob.arrayBuffer();
     const bytes = new Uint8Array(contenido);
 
