@@ -14,7 +14,14 @@ import {
   IconUpload,
 } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
-import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import {
+  type FormEvent,
+  useEffect,
+  useMemo,
+  useOptimistic,
+  useRef,
+  useState,
+} from "react";
 import { toast } from "sonner";
 
 import {
@@ -24,6 +31,7 @@ import {
   importarCatalogoBaseAction,
   importarCatalogoCsvAction,
 } from "@/app/(app)/contabilidad/actions";
+import { useAccionOptimista } from "@/components/comunes/use-accion-optimista";
 import { DialogoAsientoManual } from "@/components/contabilidad/diario-asientos-tab";
 import { FormField, FormGrid } from "@/components/formularios/form-card";
 import { BarraLista } from "@/components/listas/barra-lista";
@@ -87,6 +95,22 @@ function etiquetaNaturaleza(valor: string): string {
   return valor === "credit" ? "Acreedora" : "Deudora";
 }
 
+interface CambioActivaCuenta {
+  cuentaId: string;
+  activa: boolean;
+}
+
+function conCambioActivaCuenta(
+  actuales: readonly CuentaContable[],
+  cambio: CambioActivaCuenta,
+): CuentaContable[] {
+  return actuales.map((cuenta) =>
+    cuenta.id === cambio.cuentaId
+      ? { ...cuenta, activa: cambio.activa }
+      : cuenta,
+  );
+}
+
 export interface CatalogoCuentasTabProps {
   cuentas: readonly CuentaContable[];
 }
@@ -102,17 +126,21 @@ export function CatalogoCuentasTab({ cuentas }: CatalogoCuentasTabProps) {
   );
   const [dialogoBalances, setDialogoBalances] = useState(false);
   const [importando, setImportando] = useState(false);
-  const [procesando, setProcesando] = useState<string | null>(null);
+  const [cuentasOptimistas, aplicarCuentaOptimista] = useOptimistic(
+    cuentas,
+    conCambioActivaCuenta,
+  );
+  const accionOptimista = useAccionOptimista();
 
   const cuentasPorId = useMemo(
-    () => new Map(cuentas.map((cuenta) => [cuenta.id, cuenta])),
-    [cuentas],
+    () => new Map(cuentasOptimistas.map((cuenta) => [cuenta.id, cuenta])),
+    [cuentasOptimistas],
   );
 
   const filtradas = useMemo(() => {
     const termino = busqueda.trim().toLowerCase();
 
-    return cuentas.filter((cuenta) => {
+    return cuentasOptimistas.filter((cuenta) => {
       if (clasificacion !== "" && cuenta.clasificacion !== clasificacion) {
         return false;
       }
@@ -123,7 +151,7 @@ export function CatalogoCuentasTab({ cuentas }: CatalogoCuentasTabProps) {
         cuenta.nombre.toLowerCase().includes(termino)
       );
     });
-  }, [busqueda, clasificacion, cuentas]);
+  }, [busqueda, clasificacion, cuentasOptimistas]);
 
   function abrirCrear() {
     setCuentaEdicion(null);
@@ -169,25 +197,32 @@ export function CatalogoCuentasTab({ cuentas }: CatalogoCuentasTabProps) {
     router.refresh();
   }
 
-  async function alternarActiva(cuenta: CuentaContable) {
-    setProcesando(cuenta.id);
-    const resultado = await actualizarCuentaAction({
-      cuentaId: cuenta.id,
-      nombre: cuenta.nombre,
-      activa: !cuenta.activa,
-      esAgrupacion: cuenta.esAgrupacion,
-      esEquivalenteEfectivo: cuenta.esEquivalenteEfectivo,
-      categoriaFlujoEfectivo: cuenta.categoriaFlujoEfectivo,
+  function alternarActiva(cuenta: CuentaContable) {
+    const activa = !cuenta.activa;
+
+    accionOptimista.ejecutar({
+      clave: cuenta.id,
+      entrada: {
+        cuentaId: cuenta.id,
+        nombre: cuenta.nombre,
+        activa,
+        esAgrupacion: cuenta.esAgrupacion,
+        esEquivalenteEfectivo: cuenta.esEquivalenteEfectivo,
+        categoriaFlujoEfectivo: cuenta.categoriaFlujoEfectivo,
+      },
+      aplicarOptimista: () =>
+        aplicarCuentaOptimista({ cuentaId: cuenta.id, activa }),
+      revertirOptimista: () =>
+        aplicarCuentaOptimista({
+          cuentaId: cuenta.id,
+          activa: cuenta.activa,
+        }),
+      accion: (entrada) => actualizarCuentaAction(entrada),
+      mostrarExito: true,
+      alExito: () => router.refresh(),
+      mensajeErrorInesperado:
+        "No pudimos cambiar el estado de la cuenta. Inténtalo de nuevo.",
     });
-    setProcesando(null);
-
-    if (!resultado.ok) {
-      toast.error(resultado.error);
-      return;
-    }
-
-    toast.success(resultado.mensaje);
-    router.refresh();
   }
 
   return (
@@ -348,11 +383,11 @@ export function CatalogoCuentasTab({ cuentas }: CatalogoCuentasTabProps) {
                           variant="ghost"
                           size="icon-sm"
                           aria-label={`Acciones de ${cuenta.codigo}`}
-                          disabled={procesando === cuenta.id}
+                          disabled={accionOptimista.enCurso(cuenta.id)}
                         />
                       }
                     >
-                      {procesando === cuenta.id ? (
+                      {accionOptimista.enCurso(cuenta.id) ? (
                         <IconLoader2 className="size-4 animate-spin" />
                       ) : (
                         <IconDots className="size-4" />
@@ -364,7 +399,8 @@ export function CatalogoCuentasTab({ cuentas }: CatalogoCuentasTabProps) {
                         Editar cuenta
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        onClick={() => void alternarActiva(cuenta)}
+                        disabled={accionOptimista.enCurso(cuenta.id)}
+                        onClick={() => alternarActiva(cuenta)}
                       >
                         {cuenta.activa ? (
                           <IconPower className="size-4" />
@@ -400,13 +436,13 @@ export function CatalogoCuentasTab({ cuentas }: CatalogoCuentasTabProps) {
         abierto={dialogoCuenta}
         onOpenChange={cambiarDialogo}
         cuenta={cuentaEdicion}
-        cuentas={cuentas}
+        cuentas={cuentasOptimistas}
       />
 
       <DialogoAsientoManual
         abierto={dialogoBalances}
         onOpenChange={setDialogoBalances}
-        cuentas={cuentas}
+        cuentas={cuentasOptimistas}
         titulo="Balances iniciales"
         descripcionInicial="Balances iniciales"
         bloquearDescripcion

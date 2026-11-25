@@ -10,7 +10,13 @@ import {
   IconUsers,
 } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
-import { type FormEvent, useEffect, useMemo, useState } from "react";
+import {
+  type FormEvent,
+  useEffect,
+  useMemo,
+  useOptimistic,
+  useState,
+} from "react";
 import { toast } from "sonner";
 
 import {
@@ -18,6 +24,7 @@ import {
   guardarTerceroAction,
   toggleTerceroActivoAction,
 } from "@/app/(app)/gastos/terceros-actions";
+import { useAccionOptimista } from "@/components/comunes/use-accion-optimista";
 import { FormField } from "@/components/formularios/form-card";
 import { PillEstado } from "@/components/listas/pill-estado";
 import { SelectCampo } from "@/components/select-campo";
@@ -107,6 +114,22 @@ function formInicial(
   };
 }
 
+interface CambioActivoTercero {
+  terceroId: string;
+  activo: boolean;
+}
+
+function conCambioActivoTercero(
+  actuales: readonly TerceroListado[],
+  cambio: CambioActivoTercero,
+): TerceroListado[] {
+  return actuales.map((tercero) =>
+    tercero.id === cambio.terceroId
+      ? { ...tercero, activo: cambio.activo }
+      : tercero,
+  );
+}
+
 export interface TercerosSheetProps {
   abierto: boolean;
   onOpenChange: (abierto: boolean) => void;
@@ -135,7 +158,11 @@ export function TercerosSheet({
   const [filtroTipo, setFiltroTipo] = useState("");
   const [editando, setEditando] = useState<TerceroListado | null>(null);
   const [creando, setCreando] = useState(false);
-  const [accionId, setAccionId] = useState<string | null>(null);
+  const [tercerosOptimistas, aplicarTerceroOptimista] = useOptimistic(
+    terceros,
+    conCambioActivoTercero,
+  );
+  const accionOptimista = useAccionOptimista();
 
   useEffect(() => {
     if (!abierto) {
@@ -158,7 +185,7 @@ export function TercerosSheet({
   const filtrados = useMemo(() => {
     const termino = busqueda.trim().toLowerCase();
 
-    return terceros.filter((tercero) => {
+    return tercerosOptimistas.filter((tercero) => {
       const coincideTipo =
         filtroTipo === "" ||
         tercero.tipo === filtroTipo ||
@@ -170,24 +197,31 @@ export function TercerosSheet({
         normalizarRnc(tercero.rnc).includes(normalizarRnc(termino))
       );
     });
-  }, [terceros, busqueda, filtroTipo]);
+  }, [tercerosOptimistas, busqueda, filtroTipo]);
 
-  async function alternarActivo(tercero: TerceroListado) {
-    setAccionId(tercero.id);
-    const resultado = await toggleTerceroActivoAction({
-      empresaId,
-      terceroId: tercero.id,
-      activo: !tercero.activo,
+  function alternarActivo(tercero: TerceroListado) {
+    const activo = !tercero.activo;
+
+    accionOptimista.ejecutar({
+      clave: tercero.id,
+      entrada: {
+        empresaId,
+        terceroId: tercero.id,
+        activo,
+      },
+      aplicarOptimista: () =>
+        aplicarTerceroOptimista({ terceroId: tercero.id, activo }),
+      revertirOptimista: () =>
+        aplicarTerceroOptimista({
+          terceroId: tercero.id,
+          activo: tercero.activo,
+        }),
+      accion: (entrada) => toggleTerceroActivoAction(entrada),
+      mostrarExito: true,
+      alExito: () => router.refresh(),
+      mensajeErrorInesperado:
+        "No pudimos cambiar el estado del tercero. Inténtalo de nuevo.",
     });
-    setAccionId(null);
-
-    if (!resultado.ok) {
-      toast.error(resultado.error);
-      return;
-    }
-
-    toast.success(resultado.mensaje);
-    router.refresh();
   }
 
   const enFormulario = creando || editando !== null;
@@ -308,10 +342,10 @@ export function TercerosSheet({
                           variant="ghost"
                           size="icon-sm"
                           aria-label={`${tercero.activo ? "Inactivar" : "Activar"} ${tercero.nombre}`}
-                          disabled={accionId === tercero.id}
-                          onClick={() => void alternarActivo(tercero)}
+                          disabled={accionOptimista.enCurso(tercero.id)}
+                          onClick={() => alternarActivo(tercero)}
                         >
-                          {accionId === tercero.id ? (
+                          {accionOptimista.enCurso(tercero.id) ? (
                             <IconLoader2 className="size-4 animate-spin" />
                           ) : tercero.activo ? (
                             <IconUserOff className="size-4" />

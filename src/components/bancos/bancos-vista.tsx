@@ -18,6 +18,7 @@ import {
   type FormEvent,
   useEffect,
   useMemo,
+  useOptimistic,
   useState,
 } from "react";
 import { toast } from "sonner";
@@ -34,6 +35,7 @@ import {
   registrarMovimientoBancarioAction,
 } from "@/app/(app)/bancos/actions";
 import { TarjetasResumen } from "@/components/comunes/tarjetas-resumen";
+import { useAccionOptimista } from "@/components/comunes/use-accion-optimista";
 import { DatePicker } from "@/components/date-picker";
 import {
   DateRangePicker,
@@ -181,6 +183,27 @@ function formatearFechaHora(valor: string): string {
   }).format(fecha);
 }
 
+interface CambioConciliacionOptimista {
+  id: string;
+  conciliado: boolean;
+  sesionId: string | null;
+}
+
+function conCambioConciliacion(
+  actuales: readonly MovimientoConciliacion[],
+  cambio: CambioConciliacionOptimista,
+): MovimientoConciliacion[] {
+  return actuales.map((movimiento) =>
+    movimiento.id === cambio.id
+      ? {
+          ...movimiento,
+          conciliado: cambio.conciliado,
+          sesionId: cambio.sesionId,
+        }
+      : movimiento,
+  );
+}
+
 export function BancosVista({
   empresaId,
   moneda,
@@ -207,6 +230,11 @@ export function BancosVista({
   const [movimientosSesion, setMovimientosSesion] = useState<
     MovimientoConciliacion[]
   >([]);
+  const [movimientosOptimistas, aplicarMovimientoOptimista] = useOptimistic(
+    movimientosSesion,
+    conCambioConciliacion,
+  );
+  const accionOptimista = useAccionOptimista();
   const [cargandoSesion, setCargandoSesion] = useState(false);
   const [accionId, setAccionId] = useState<string | null>(null);
   const [filtroCuenta, setFiltroCuenta] = useState(filtros.cuenta);
@@ -277,11 +305,11 @@ export function BancosVista({
 
   const conciliados = useMemo(() => {
     if (!sesionActiva) return [] as MovimientoConciliacion[];
-    return movimientosSesion.filter(
+    return movimientosOptimistas.filter(
       (movimiento) =>
         movimiento.conciliado && movimiento.sesionId === sesionActiva.id,
     );
-  }, [movimientosSesion, sesionActiva]);
+  }, [movimientosOptimistas, sesionActiva]);
 
   const netoConciliado = useMemo(
     () =>
@@ -319,40 +347,42 @@ export function BancosVista({
     setDialogoCuenta(true);
   }
 
-  async function alternarConciliado(movimiento: MovimientoConciliacion) {
+  function alternarConciliado(movimiento: MovimientoConciliacion) {
     const sesion = sesionDetalle;
     if (!sesion) return;
 
     const conciliar = !(
       movimiento.conciliado && movimiento.sesionId === sesion.id
     );
-
-    setAccionId(movimiento.id);
-    const resultado = await marcarMovimientoConciliadoAction({
-      empresaId,
-      movimientoId: movimiento.id,
-      sesionId: sesion.id,
+    const cambio: CambioConciliacionOptimista = {
+      id: movimiento.id,
       conciliado: conciliar,
+      sesionId: conciliar ? sesion.id : null,
+    };
+
+    accionOptimista.ejecutar({
+      clave: movimiento.id,
+      entrada: {
+        empresaId,
+        movimientoId: movimiento.id,
+        sesionId: sesion.id,
+        conciliado: conciliar,
+      },
+      aplicarOptimista: () => aplicarMovimientoOptimista(cambio),
+      revertirOptimista: () =>
+        aplicarMovimientoOptimista({
+          id: movimiento.id,
+          conciliado: movimiento.conciliado,
+          sesionId: movimiento.sesionId,
+        }),
+      accion: (entrada) => marcarMovimientoConciliadoAction(entrada),
+      alExito: () => {
+        setMovimientosSesion((actual) => conCambioConciliacion(actual, cambio));
+        router.refresh();
+      },
+      mensajeErrorInesperado:
+        "No pudimos actualizar la conciliación del movimiento. Inténtalo de nuevo.",
     });
-    setAccionId(null);
-
-    if (!resultado.ok) {
-      toast.error(resultado.error);
-      return;
-    }
-
-    setMovimientosSesion((actual) =>
-      actual.map((fila) =>
-        fila.id === movimiento.id
-          ? {
-              ...fila,
-              conciliado: conciliar,
-              sesionId: conciliar ? sesion.id : null,
-            }
-          : fila,
-      ),
-    );
-    router.refresh();
   }
 
   async function cerrarSesion() {
@@ -871,13 +901,13 @@ export function BancosVista({
                     <IconLoader2 className="size-4 animate-spin" />
                     Cargando movimientos…
                   </div>
-                ) : movimientosSesion.length === 0 ? (
+                ) : movimientosOptimistas.length === 0 ? (
                   <p className="px-4 py-10 text-center text-sm text-muted-foreground">
                     La cuenta no tiene movimientos registrados.
                   </p>
                 ) : (
                   <ul className="divide-y divide-border">
-                    {movimientosSesion.map((movimiento) => {
+                    {movimientosOptimistas.map((movimiento) => {
                       const enSesion =
                         movimiento.conciliado &&
                         movimiento.sesionId === sesionActiva.id;
@@ -905,12 +935,10 @@ export function BancosVista({
                             <Button
                               variant={enSesion ? "secondary" : "outline"}
                               size="sm"
-                              disabled={accionId === movimiento.id}
-                              onClick={() =>
-                                void alternarConciliado(movimiento)
-                              }
+                              disabled={accionOptimista.enCurso(movimiento.id)}
+                              onClick={() => alternarConciliado(movimiento)}
                             >
-                              {accionId === movimiento.id ? (
+                              {accionOptimista.enCurso(movimiento.id) ? (
                                 <IconLoader2 className="size-4 animate-spin" />
                               ) : (
                                 <IconCheck className="size-4" />
