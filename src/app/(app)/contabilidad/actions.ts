@@ -65,6 +65,80 @@ export interface PeriodoContable {
   estado: string;
 }
 
+export interface MetodoPagoContable {
+  id: string;
+  nombre: string;
+  cuentaId: string;
+  dejaCxpProveedor: boolean;
+  activo: boolean;
+}
+
+export interface BalanceInicialListado {
+  id: string;
+  numero: string;
+  fecha: string;
+  descripcion: string;
+  estado: string;
+  debitos: number;
+  creditos: number;
+}
+
+export interface EntradaLineaBalanceInicial {
+  codigo: string;
+  debito: number;
+  credito: number;
+  descripcion: string;
+}
+
+export interface EntradaBalanceInicial {
+  fecha: string;
+  descripcion: string;
+  lineas: EntradaLineaBalanceInicial[];
+}
+
+export interface EntradaMetodoPago {
+  id?: string | null;
+  nombre: string;
+  cuentaId: string;
+  dejaCxpProveedor: boolean;
+  activo: boolean;
+}
+
+export interface FilaEstadoResultados {
+  clasificacion: string;
+  cuentaId: string;
+  codigo: string;
+  nombre: string;
+  debitos: number;
+  creditos: number;
+  monto: number;
+}
+
+export interface FilaBalanceGeneral {
+  clasificacion: string;
+  cuentaId: string;
+  codigo: string;
+  nombre: string;
+  monto: number;
+}
+
+export interface FilaFlujoEfectivo {
+  categoria: string;
+  monto: number;
+}
+
+export interface FilaCambioPatrimonio {
+  cuentaId: string | null;
+  codigo: string;
+  nombre: string;
+  movimiento: number;
+  esResultado: boolean;
+}
+
+export type ResultadoReporte<T> =
+  | { ok: true; filas: T[]; resultado: number }
+  | { ok: false; error: string };
+
 export interface FilaBalanza {
   cuentaId: string;
   codigo: string;
@@ -211,6 +285,31 @@ const esquemaRango = z.object({
 
 const esquemaMayor = esquemaRango.extend({
   cuentaId: z.string().uuid("Cuenta inválida."),
+});
+
+const esquemaCorte = z.object({
+  fechaCorte: fechaIso,
+});
+
+const esquemaMetodoPago = z.object({
+  id: z.string().uuid("Método de pago inválido.").nullable().optional(),
+  nombre: z.string().trim().min(1, "El nombre es obligatorio.").max(100),
+  cuentaId: z.string().uuid("Cuenta inválida."),
+  dejaCxpProveedor: z.boolean(),
+  activo: z.boolean(),
+});
+
+const esquemaLineaBalanceInicial = z.object({
+  codigo: z.string().trim().min(1, "Falta el código de cuenta.").max(24),
+  debito: z.number().min(0).max(999_999_999_999),
+  credito: z.number().min(0).max(999_999_999_999),
+  descripcion: z.string().trim().max(200),
+});
+
+const esquemaBalanceInicial = z.object({
+  fecha: fechaIso,
+  descripcion: z.string().trim().min(1).max(300),
+  lineas: z.array(esquemaLineaBalanceInicial).min(2).max(2000),
 });
 
 function refrescar() {
@@ -926,6 +1025,479 @@ export async function reabrirPeriodoAction(
 
     refrescar();
     return { ok: true, mensaje: "Período reabierto correctamente." };
+  } catch (error) {
+    return { ok: false, error: errorDeExcepcion(error) };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Formas de pago
+// ---------------------------------------------------------------------------
+
+export async function guardarMetodoPagoAction(
+  entrada: EntradaMetodoPago,
+): Promise<ResultadoAccion> {
+  const preparado = await prepararAccion();
+  if (!preparado.ok) return { ok: false, error: preparado.error };
+
+  const resultado = esquemaMetodoPago.safeParse(entrada);
+  if (!resultado.success) {
+    return {
+      ok: false,
+      error: resultado.error.issues[0]?.message ?? "Revisa la forma de pago.",
+    };
+  }
+
+  const datos = resultado.data;
+
+  try {
+    const { data: cuenta, error: errorCuenta } =
+      await preparado.contexto.supabase
+        .from("cuentas")
+        .select("clasificacion, activa, es_agrupacion")
+        .eq("empresa_id", preparado.contexto.empresaId)
+        .eq("id", datos.cuentaId)
+        .maybeSingle();
+
+    if (errorCuenta) return { ok: false, error: errorCuenta.message };
+
+    if (!cuenta) {
+      return {
+        ok: false,
+        error: "La cuenta contable seleccionada no existe en esta empresa.",
+      };
+    }
+
+    const cuentaFila = cuenta as {
+      clasificacion: string;
+      activa: boolean;
+      es_agrupacion: boolean;
+    };
+
+    if (!cuentaFila.activa || cuentaFila.es_agrupacion) {
+      return {
+        ok: false,
+        error: "Selecciona una cuenta activa de movimiento.",
+      };
+    }
+
+    if (datos.dejaCxpProveedor && cuentaFila.clasificacion !== "liability") {
+      return {
+        ok: false,
+        error: "La forma que deja saldo al suplidor debe usar un pasivo.",
+      };
+    }
+
+    if (
+      !datos.dejaCxpProveedor &&
+      !["asset", "liability", "equity"].includes(cuentaFila.clasificacion)
+    ) {
+      return {
+        ok: false,
+        error: "La cuenta de pago debe ser de activo, pasivo o patrimonio.",
+      };
+    }
+
+    const { error } = await preparado.contexto.supabase.rpc(
+      "guardar_metodo_pago",
+      {
+        p_empresa_id: preparado.contexto.empresaId,
+        p_id: datos.id ?? null,
+        p_nombre: datos.nombre,
+        p_cuenta_id: datos.cuentaId,
+        p_deja_cxp_proveedor: datos.dejaCxpProveedor,
+        p_activo: datos.activo,
+      },
+    );
+
+    if (error) return { ok: false, error: error.message };
+
+    refrescar();
+    return {
+      ok: true,
+      mensaje: datos.id
+        ? "Forma de pago actualizada correctamente."
+        : "Forma de pago creada correctamente.",
+    };
+  } catch (error) {
+    return { ok: false, error: errorDeExcepcion(error) };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Balances iniciales
+// ---------------------------------------------------------------------------
+
+export async function crearBalanceInicialAction(
+  entrada: EntradaBalanceInicial,
+): Promise<ResultadoAccion> {
+  const preparado = await prepararAccion();
+  if (!preparado.ok) return { ok: false, error: preparado.error };
+
+  const resultado = esquemaBalanceInicial.safeParse(entrada);
+  if (!resultado.success) {
+    return {
+      ok: false,
+      error:
+        resultado.error.issues[0]?.message ??
+        "Revisa las líneas del balance inicial.",
+    };
+  }
+
+  const datos = resultado.data;
+  const lineas = datos.lineas.map((linea) => ({
+    ...linea,
+    debito: redondearCentavos(linea.debito),
+    credito: redondearCentavos(linea.credito),
+  }));
+
+  if (lineas.some((linea) => linea.debito > 0 === linea.credito > 0)) {
+    return {
+      ok: false,
+      error:
+        "Cada línea debe registrar débito o crédito, nunca ambos ni ninguno.",
+    };
+  }
+
+  const totalDebito = redondearCentavos(
+    lineas.reduce((acumulado, linea) => acumulado + linea.debito, 0),
+  );
+  const totalCredito = redondearCentavos(
+    lineas.reduce((acumulado, linea) => acumulado + linea.credito, 0),
+  );
+
+  if (totalDebito <= 0 || totalDebito !== totalCredito) {
+    return {
+      ok: false,
+      error: `El balance inicial debe cuadrar. Débitos: ${totalDebito.toFixed(2)}; créditos: ${totalCredito.toFixed(2)}.`,
+    };
+  }
+
+  try {
+    const [periodo, existentes, cuentas] = await Promise.all([
+      preparado.contexto.supabase
+        .from("periodos_contables")
+        .select("id")
+        .eq("empresa_id", preparado.contexto.empresaId)
+        .eq("estado", "open")
+        .lte("fecha_inicio", datos.fecha)
+        .gte("fecha_fin", datos.fecha)
+        .limit(1),
+      preparado.contexto.supabase
+        .from("asientos")
+        .select("id")
+        .eq("empresa_id", preparado.contexto.empresaId)
+        .eq("fecha", datos.fecha)
+        .eq("referencia", "SALDOS-INICIALES")
+        .in("estado", ["draft", "posted"])
+        .limit(1),
+      preparado.contexto.supabase
+        .from("cuentas")
+        .select("id, codigo, activa, es_agrupacion")
+        .eq("empresa_id", preparado.contexto.empresaId)
+        .in("codigo", [...new Set(lineas.map((linea) => linea.codigo))])
+        .limit(2000),
+    ]);
+
+    if (periodo.error) return { ok: false, error: periodo.error.message };
+    if (existentes.error) return { ok: false, error: existentes.error.message };
+    if (cuentas.error) return { ok: false, error: cuentas.error.message };
+
+    if ((periodo.data ?? []).length === 0) {
+      return {
+        ok: false,
+        error: "La fecha de apertura debe caer dentro de un período abierto.",
+      };
+    }
+
+    if ((existentes.data ?? []).length > 0) {
+      return {
+        ok: false,
+        error:
+          "Ya existe una carga de balances iniciales para esa empresa y fecha.",
+      };
+    }
+
+    const cuentasPorCodigo = new Map(
+      (
+        (cuentas.data ?? []) as Array<{
+          id: string;
+          codigo: string;
+          activa: boolean;
+          es_agrupacion: boolean;
+        }>
+      ).map((cuenta) => [cuenta.codigo, cuenta]),
+    );
+
+    const lineasJson: Json = [];
+    for (const [indice, linea] of lineas.entries()) {
+      const cuenta = cuentasPorCodigo.get(linea.codigo);
+      if (!cuenta) {
+        return {
+          ok: false,
+          error: `Línea ${indice + 1}: la cuenta ${linea.codigo} no existe.`,
+        };
+      }
+      if (!cuenta.activa || cuenta.es_agrupacion) {
+        return {
+          ok: false,
+          error: `Línea ${indice + 1}: la cuenta ${linea.codigo} no es una cuenta activa de movimiento.`,
+        };
+      }
+      lineasJson.push({
+        cuenta_id: cuenta.id,
+        descripcion: linea.descripcion,
+        debito: linea.debito,
+        credito: linea.credito,
+      });
+    }
+
+    const { error } = await preparado.contexto.supabase.rpc(
+      "crear_asiento_manual",
+      {
+        p_empresa_id: preparado.contexto.empresaId,
+        p_fecha: datos.fecha,
+        p_descripcion:
+          datos.descripcion.trim() === ""
+            ? "Balances iniciales"
+            : datos.descripcion,
+        p_referencia: "SALDOS-INICIALES",
+        p_lineas: lineasJson,
+        p_contabilizar: false,
+      },
+    );
+
+    if (error) return { ok: false, error: error.message };
+
+    refrescar();
+    return {
+      ok: true,
+      mensaje: "Balance inicial guardado como borrador contable.",
+    };
+  } catch (error) {
+    return { ok: false, error: errorDeExcepcion(error) };
+  }
+}
+
+function calcularResultadoFinanciero(
+  filas: readonly FilaEstadoResultados[],
+): number {
+  return filas.reduce((acumulado, fila) => {
+    if (fila.clasificacion === "income") return acumulado + fila.monto;
+    if (fila.clasificacion === "cost") return acumulado - fila.monto;
+    if (fila.clasificacion === "expense") return acumulado - fila.monto;
+    return acumulado;
+  }, 0);
+}
+
+async function consultarEstadoResultadosInterno(
+  contexto: ContextoAccion,
+  desde: string,
+  hasta: string,
+): Promise<ResultadoReporte<FilaEstadoResultados>> {
+  const { data, error } = await contexto.supabase.rpc(
+    "reporte_estado_resultados",
+    {
+      p_empresa_id: contexto.empresaId,
+      p_desde: desde,
+      p_hasta: hasta,
+    },
+  );
+
+  if (error) return { ok: false, error: error.message };
+
+  const filas: FilaEstadoResultados[] = (data ?? []).map((fila) => ({
+    clasificacion: fila.clasificacion,
+    cuentaId: fila.cuenta_id,
+    codigo: fila.codigo,
+    nombre: fila.nombre,
+    debitos: aNumero(fila.debitos),
+    creditos: aNumero(fila.creditos),
+    monto: aNumero(fila.monto),
+  }));
+
+  return { ok: true, filas, resultado: calcularResultadoFinanciero(filas) };
+}
+
+export async function consultarEstadoResultadosContableAction(entrada: {
+  desde: string;
+  hasta: string;
+}): Promise<ResultadoReporte<FilaEstadoResultados>> {
+  const preparado = await prepararAccion();
+  if (!preparado.ok) return { ok: false, error: preparado.error };
+
+  const resultado = esquemaRango.safeParse(entrada);
+  if (!resultado.success) {
+    return { ok: false, error: "Revisa el rango de fechas." };
+  }
+
+  if (resultado.data.desde > resultado.data.hasta) {
+    return { ok: false, error: "La fecha inicial no puede superar la final." };
+  }
+
+  try {
+    return await consultarEstadoResultadosInterno(
+      preparado.contexto,
+      resultado.data.desde,
+      resultado.data.hasta,
+    );
+  } catch (error) {
+    return { ok: false, error: errorDeExcepcion(error) };
+  }
+}
+
+export async function consultarBalanceGeneralContableAction(entrada: {
+  fechaCorte: string;
+}): Promise<ResultadoReporte<FilaBalanceGeneral>> {
+  const preparado = await prepararAccion();
+  if (!preparado.ok) return { ok: false, error: preparado.error };
+
+  const resultado = esquemaCorte.safeParse(entrada);
+  if (!resultado.success) {
+    return { ok: false, error: "Revisa la fecha de corte." };
+  }
+
+  const fechaCorte = resultado.data.fechaCorte;
+
+  try {
+    const [balance, estado] = await Promise.all([
+      preparado.contexto.supabase.rpc("reporte_balance_general", {
+        p_empresa_id: preparado.contexto.empresaId,
+        p_fecha_corte: fechaCorte,
+      }),
+      consultarEstadoResultadosInterno(
+        preparado.contexto,
+        `${fechaCorte.slice(0, 4)}-01-01`,
+        fechaCorte,
+      ),
+    ]);
+
+    if (balance.error) return { ok: false, error: balance.error.message };
+
+    const filas: FilaBalanceGeneral[] = (balance.data ?? []).map((fila) => ({
+      clasificacion: fila.clasificacion,
+      cuentaId: fila.cuenta_id,
+      codigo: fila.codigo,
+      nombre: fila.nombre,
+      monto: aNumero(fila.monto),
+    }));
+
+    return {
+      ok: true,
+      filas,
+      resultado: estado.ok ? estado.resultado : 0,
+    };
+  } catch (error) {
+    return { ok: false, error: errorDeExcepcion(error) };
+  }
+}
+
+export async function consultarFlujoEfectivoContableAction(entrada: {
+  desde: string;
+  hasta: string;
+}): Promise<ResultadoReporte<FilaFlujoEfectivo>> {
+  const preparado = await prepararAccion();
+  if (!preparado.ok) return { ok: false, error: preparado.error };
+
+  const resultado = esquemaRango.safeParse(entrada);
+  if (!resultado.success) {
+    return { ok: false, error: "Revisa el rango de fechas." };
+  }
+
+  if (resultado.data.desde > resultado.data.hasta) {
+    return { ok: false, error: "La fecha inicial no puede superar la final." };
+  }
+
+  try {
+    const { data, error } = await preparado.contexto.supabase.rpc(
+      "reporte_flujo_efectivo",
+      {
+        p_empresa_id: preparado.contexto.empresaId,
+        p_desde: resultado.data.desde,
+        p_hasta: resultado.data.hasta,
+      },
+    );
+
+    if (error) return { ok: false, error: error.message };
+
+    const filas: FilaFlujoEfectivo[] = (data ?? []).map((fila) => ({
+      categoria: fila.categoria,
+      monto: aNumero(fila.monto),
+    }));
+
+    return {
+      ok: true,
+      filas,
+      resultado: filas.reduce((acumulado, fila) => acumulado + fila.monto, 0),
+    };
+  } catch (error) {
+    return { ok: false, error: errorDeExcepcion(error) };
+  }
+}
+
+export async function consultarCambiosPatrimonioAction(entrada: {
+  desde: string;
+  hasta: string;
+}): Promise<ResultadoReporte<FilaCambioPatrimonio>> {
+  const preparado = await prepararAccion();
+  if (!preparado.ok) return { ok: false, error: preparado.error };
+
+  const resultado = esquemaRango.safeParse(entrada);
+  if (!resultado.success) {
+    return { ok: false, error: "Revisa el rango de fechas." };
+  }
+
+  if (resultado.data.desde > resultado.data.hasta) {
+    return { ok: false, error: "La fecha inicial no puede superar la final." };
+  }
+
+  try {
+    const [balanza, estado] = await Promise.all([
+      preparado.contexto.supabase.rpc("reporte_balanza_comprobacion", {
+        p_empresa_id: preparado.contexto.empresaId,
+        p_desde: resultado.data.desde,
+        p_hasta: resultado.data.hasta,
+      }),
+      consultarEstadoResultadosInterno(
+        preparado.contexto,
+        resultado.data.desde,
+        resultado.data.hasta,
+      ),
+    ]);
+
+    if (balanza.error) return { ok: false, error: balanza.error.message };
+
+    const filas: FilaCambioPatrimonio[] = (balanza.data ?? [])
+      .filter(
+        (fila) =>
+          fila.clasificacion === "equity" &&
+          (aNumero(fila.debitos) !== 0 || aNumero(fila.creditos) !== 0),
+      )
+      .map((fila) => ({
+        cuentaId: fila.cuenta_id,
+        codigo: fila.codigo,
+        nombre: fila.nombre,
+        movimiento: aNumero(fila.creditos) - aNumero(fila.debitos),
+        esResultado: false,
+      }));
+
+    const resultadoPeriodo = estado.ok ? estado.resultado : 0;
+    filas.push({
+      cuentaId: null,
+      codigo: "",
+      nombre: "Resultado del período",
+      movimiento: resultadoPeriodo,
+      esResultado: true,
+    });
+
+    return {
+      ok: true,
+      filas,
+      resultado: filas.reduce(
+        (acumulado, fila) => acumulado + fila.movimiento,
+        0,
+      ),
+    };
   } catch (error) {
     return { ok: false, error: errorDeExcepcion(error) };
   }

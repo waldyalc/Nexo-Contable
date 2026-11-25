@@ -4,8 +4,10 @@ import { Suspense } from "react";
 
 import type {
   AsientoListado,
+  BalanceInicialListado,
   CuentaContable,
   LineaAsiento,
+  MetodoPagoContable,
   PeriodoContable,
 } from "@/app/(app)/contabilidad/actions";
 import {
@@ -71,6 +73,14 @@ interface PeriodoFila {
   estado: string;
 }
 
+interface MetodoPagoFila {
+  id: string;
+  nombre: string;
+  cuenta_id: string;
+  deja_cxp_proveedor: boolean;
+  activo: boolean;
+}
+
 function EstadoSinEmpresa() {
   return (
     <TarjetaLista>
@@ -121,7 +131,7 @@ interface ContabilidadContenidoProps {
 function EsqueletoContabilidad() {
   return (
     <div className="flex flex-col gap-3">
-      <EsqueletoPestanas cantidad={4} />
+      <EsqueletoPestanas cantidad={10} />
       <EsqueletoTabla
         titulo="Contabilidad"
         descripcion="Cargando catálogo, asientos y períodos…"
@@ -140,43 +150,53 @@ async function ContabilidadContenido({
 }: ContabilidadContenidoProps) {
   const supabase = await createClient();
 
-  const [cuentasFilas, asientosFilas, periodosFilas] = await Promise.all([
-    paginarConsulta<CuentaFila>(async (desde, hasta) => {
-      const { data, error } = await supabase
-        .from("cuentas")
-        .select(
-          "id, codigo, nombre, padre_id, clasificacion, naturaleza, nivel, es_agrupacion, activa, es_equivalente_efectivo, categoria_flujo_efectivo",
-        )
-        .eq("empresa_id", empresa.id)
-        .order("codigo", { ascending: true })
-        .range(desde, hasta);
-      return { data: (data as CuentaFila[] | null) ?? null, error };
-    }),
-    (async () => {
-      const { data, error } = await supabase
-        .from("asientos")
-        .select(
-          "id, numero, fecha, tipo_operacion, descripcion, referencia, estado, reverso_de, revertido_por",
-        )
-        .eq("empresa_id", empresa.id)
-        .order("fecha", { ascending: false })
-        .order("numero", { ascending: false })
-        .limit(200);
-      return {
-        filas: (data as AsientoFila[] | null) ?? [],
-        error,
-      };
-    })(),
-    paginarConsulta<PeriodoFila>(async (desde, hasta) => {
-      const { data, error } = await supabase
-        .from("periodos_contables")
-        .select("id, nombre, fecha_inicio, fecha_fin, estado")
-        .eq("empresa_id", empresa.id)
-        .order("fecha_inicio", { ascending: false })
-        .range(desde, hasta);
-      return { data: (data as PeriodoFila[] | null) ?? null, error };
-    }),
-  ]);
+  const [cuentasFilas, asientosFilas, periodosFilas, metodosFilas] =
+    await Promise.all([
+      paginarConsulta<CuentaFila>(async (desde, hasta) => {
+        const { data, error } = await supabase
+          .from("cuentas")
+          .select(
+            "id, codigo, nombre, padre_id, clasificacion, naturaleza, nivel, es_agrupacion, activa, es_equivalente_efectivo, categoria_flujo_efectivo",
+          )
+          .eq("empresa_id", empresa.id)
+          .order("codigo", { ascending: true })
+          .range(desde, hasta);
+        return { data: (data as CuentaFila[] | null) ?? null, error };
+      }),
+      (async () => {
+        const { data, error } = await supabase
+          .from("asientos")
+          .select(
+            "id, numero, fecha, tipo_operacion, descripcion, referencia, estado, reverso_de, revertido_por",
+          )
+          .eq("empresa_id", empresa.id)
+          .order("fecha", { ascending: false })
+          .order("numero", { ascending: false })
+          .limit(200);
+        return {
+          filas: (data as AsientoFila[] | null) ?? [],
+          error,
+        };
+      })(),
+      paginarConsulta<PeriodoFila>(async (desde, hasta) => {
+        const { data, error } = await supabase
+          .from("periodos_contables")
+          .select("id, nombre, fecha_inicio, fecha_fin, estado")
+          .eq("empresa_id", empresa.id)
+          .order("fecha_inicio", { ascending: false })
+          .range(desde, hasta);
+        return { data: (data as PeriodoFila[] | null) ?? null, error };
+      }),
+      paginarConsulta<MetodoPagoFila>(async (desde, hasta) => {
+        const { data, error } = await supabase
+          .from("metodos_pago")
+          .select("id, nombre, cuenta_id, deja_cxp_proveedor, activo")
+          .eq("empresa_id", empresa.id)
+          .order("nombre", { ascending: true })
+          .range(desde, hasta);
+        return { data: (data as MetodoPagoFila[] | null) ?? null, error };
+      }),
+    ]);
 
   const asientos = asientosFilas.filas;
   const idsAsientos = asientos.map((asiento) => asiento.id);
@@ -193,6 +213,46 @@ async function ContabilidadContenido({
       return { data: (data as LineaFila[] | null) ?? null, error };
     }),
   );
+
+  const { data: balancesBase, error: errorBalances } = await supabase
+    .from("asientos")
+    .select(
+      "id, numero, fecha, tipo_operacion, descripcion, referencia, estado, reverso_de, revertido_por",
+    )
+    .eq("empresa_id", empresa.id)
+    .or("tipo_operacion.eq.opening_balance,referencia.eq.SALDOS-INICIALES")
+    .order("fecha", { ascending: false })
+    .order("numero", { ascending: false })
+    .limit(50);
+
+  const balanceIds = ((balancesBase as AsientoFila[] | null) ?? []).map(
+    (balance) => balance.id,
+  );
+  const lineasBalances = await consultarEnLotes(balanceIds, async (lote) =>
+    paginarConsulta<LineaFila>(async (desde, hasta) => {
+      const { data, error } = await supabase
+        .from("asiento_lineas")
+        .select("id, asiento_id, cuenta_id, descripcion, debito, credito")
+        .eq("empresa_id", empresa.id)
+        .in("asiento_id", lote)
+        .order("asiento_id", { ascending: true })
+        .range(desde, hasta);
+      return { data: (data as LineaFila[] | null) ?? null, error };
+    }),
+  );
+
+  const [borradoresCount, contabilizadosCount] = await Promise.all([
+    supabase
+      .from("asientos")
+      .select("id", { count: "exact", head: true })
+      .eq("empresa_id", empresa.id)
+      .eq("estado", "draft"),
+    supabase
+      .from("asientos")
+      .select("id", { count: "exact", head: true })
+      .eq("empresa_id", empresa.id)
+      .eq("estado", "posted"),
+  ]);
 
   const cuentas: CuentaContable[] = cuentasFilas.map((fila) => ({
     id: fila.id,
@@ -237,6 +297,40 @@ async function ContabilidadContenido({
     estado: fila.estado,
   }));
 
+  const metodosPago: MetodoPagoContable[] = metodosFilas.map((fila) => ({
+    id: fila.id,
+    nombre: fila.nombre,
+    cuentaId: fila.cuenta_id,
+    dejaCxpProveedor: fila.deja_cxp_proveedor,
+    activo: fila.activo,
+  }));
+
+  const totalesPorBalance = new Map<
+    string,
+    { debitos: number; creditos: number }
+  >();
+  for (const linea of lineasBalances) {
+    const anterior = totalesPorBalance.get(linea.asiento_id) ?? {
+      debitos: 0,
+      creditos: 0,
+    };
+    anterior.debitos += Number(linea.debito);
+    anterior.creditos += Number(linea.credito);
+    totalesPorBalance.set(linea.asiento_id, anterior);
+  }
+
+  const balancesIniciales: BalanceInicialListado[] = (
+    (balancesBase as AsientoFila[] | null) ?? []
+  ).map((fila) => ({
+    id: fila.id,
+    numero: fila.numero,
+    fecha: fila.fecha,
+    descripcion: fila.descripcion,
+    estado: fila.estado,
+    debitos: totalesPorBalance.get(fila.id)?.debitos ?? 0,
+    creditos: totalesPorBalance.get(fila.id)?.creditos ?? 0,
+  }));
+
   return (
     <>
       <ContabilidadVista
@@ -249,11 +343,21 @@ async function ContabilidadContenido({
         asientos={asientosListado}
         lineas={lineas}
         periodos={periodos}
+        metodosPago={metodosPago}
+        balancesIniciales={balancesIniciales}
+        totalBorradores={borradoresCount.count ?? 0}
+        totalContabilizados={contabilizadosCount.count ?? 0}
       />
       {asientosFilas.error ? (
         <p className="text-xs text-muted-foreground">
           No pudimos cargar todos los asientos recientes:{" "}
           {asientosFilas.error.message}
+        </p>
+      ) : null}
+      {errorBalances ? (
+        <p className="text-xs text-muted-foreground">
+          No pudimos cargar las cargas de balances iniciales:{" "}
+          {errorBalances.message}
         </p>
       ) : null}
     </>
@@ -271,8 +375,8 @@ export default async function ContabilidadPage() {
       titulo="Contabilidad"
       descripcion={
         empresa
-          ? `${empresa.nombreComercial} · Catálogo, diario, mayor y períodos contables`
-          : "Catálogo de cuentas, libro diario, mayor y períodos contables."
+          ? `${empresa.nombreComercial} · Resumen, catálogo, diario, mayor, balanza y estados`
+          : "Catálogo, diario, mayor, balanza, estados financieros y configuración contable."
       }
       migas={[{ etiqueta: "Operaciones" }, { etiqueta: "Contabilidad" }]}
     />
