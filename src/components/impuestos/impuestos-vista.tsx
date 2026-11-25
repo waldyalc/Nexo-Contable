@@ -30,7 +30,6 @@ import { PillEstado } from "@/components/listas/pill-estado";
 import { TablaLista } from "@/components/listas/tabla-lista";
 import { TarjetaLista } from "@/components/listas/tarjeta-lista";
 import { MonthPicker } from "@/components/month-picker";
-import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { SelectCampo } from "@/components/select-campo";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -139,12 +138,6 @@ export function ImpuestosVista({
 
   return (
     <>
-      <EncabezadoPagina
-        titulo="Impuestos"
-        descripcion="Formatos 606/607, secuencias NCF y e-CF, configuración fiscal y obligaciones de la DGII."
-        migas={[{ etiqueta: "Operaciones" }, { etiqueta: "Impuestos" }]}
-      />
-
       <Tabs defaultValue="formatos">
         <TabsList>
           <TabsTrigger value="formatos">Formatos 606 / 607</TabsTrigger>

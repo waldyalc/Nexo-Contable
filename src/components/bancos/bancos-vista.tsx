@@ -10,7 +10,6 @@ import {
   IconLock,
   IconPencil,
   IconPlus,
-  IconRefresh,
   IconScale,
 } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
@@ -45,7 +44,6 @@ import { BarraLista } from "@/components/listas/barra-lista";
 import { PillEstado, type TonoPill } from "@/components/listas/pill-estado";
 import { TablaLista } from "@/components/listas/tabla-lista";
 import { TarjetaLista } from "@/components/listas/tarjeta-lista";
-import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { type OpcionSelect, SelectCampo } from "@/components/select-campo";
 import { Button } from "@/components/ui/button";
 import {
@@ -382,18 +380,6 @@ export function BancosVista({
 
   return (
     <>
-      <EncabezadoPagina
-        titulo="Banco y conciliación"
-        descripcion="Cuentas bancarias, movimientos, importación de extractos y conciliación con el mayor contable."
-        migas={[{ etiqueta: "Operaciones" }, { etiqueta: "Banco" }]}
-        acciones={
-          <Button variant="outline" onClick={() => router.refresh()}>
-            <IconRefresh className="size-4" />
-            Actualizar
-          </Button>
-        }
-      />
-
       <TarjetasResumen
         etiqueta="Resumen bancario"
         datos={[

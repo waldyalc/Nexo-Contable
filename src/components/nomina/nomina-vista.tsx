@@ -7,7 +7,6 @@ import {
   IconPencil,
   IconPlus,
   IconReceipt2,
-  IconRefresh,
   IconUsersGroup,
 } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
@@ -28,7 +27,6 @@ import { PillEstado } from "@/components/listas/pill-estado";
 import { TablaLista } from "@/components/listas/tabla-lista";
 import { TarjetaLista } from "@/components/listas/tarjeta-lista";
 import { MonthPicker } from "@/components/month-picker";
-import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { type OpcionSelect, SelectCampo } from "@/components/select-campo";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -109,7 +107,6 @@ export function NominaVista({
   opcionesCuentas,
   puedeGestionar,
 }: NominaVistaProps) {
-  const router = useRouter();
   const [dialogoEmpleado, setDialogoEmpleado] = useState(false);
   const [empleadoEdicion, setEmpleadoEdicion] =
     useState<EmpleadoListado | null>(null);
@@ -134,18 +131,6 @@ export function NominaVista({
 
   return (
     <>
-      <EncabezadoPagina
-        titulo="Recursos humanos y nómina"
-        descripcion="Empleados, corridas de nómina y su contabilización con asiento automático."
-        migas={[{ etiqueta: "Operaciones" }, { etiqueta: "Recursos humanos" }]}
-        acciones={
-          <Button variant="outline" onClick={() => router.refresh()}>
-            <IconRefresh className="size-4" />
-            Actualizar
-          </Button>
-        }
-      />
-
       <TarjetasResumen
         etiqueta="Resumen de nómina"
         datos={[
