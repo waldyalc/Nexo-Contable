@@ -291,7 +291,7 @@ export function DashboardVista({
   }, [firma]);
 
   const contenidoEmpresa = (
-    <>
+    <div className="flex flex-col gap-4">
       <section
         aria-label="Indicadores del período"
         className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3"
@@ -436,7 +436,7 @@ export function DashboardVista({
           ]}
         />
       </TarjetaLista>
-    </>
+    </div>
   );
 
   return (
