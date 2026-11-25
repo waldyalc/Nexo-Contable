@@ -20,7 +20,6 @@ import {
   IconUsersGroup,
 } from "@tabler/icons-react";
 
-import type { MigaDePan } from "@/components/pagina/migas-de-pan";
 import type { RolContexto } from "@/lib/auth/sesion";
 
 export const ETIQUETAS_ROL: Record<RolContexto, string> = {
@@ -190,12 +189,6 @@ export const RUTAS_PERFIL_ADMIN: readonly ItemNavegacion[] = [
   },
 ];
 
-const TITULO_GRUPO: Record<GrupoNavegacion["titulo"], string> = {
-  GENERAL: "General",
-  OPERACIONES: "Operaciones",
-  SISTEMA: "Sistema",
-};
-
 /** Filtra el menú según el rol efectivo del usuario en la empresa activa. */
 export function filtrarGruposPorRol(
   grupos: readonly GrupoNavegacion[],
@@ -209,40 +202,6 @@ export function filtrarGruposPorRol(
       ),
     }))
     .filter((grupo) => grupo.items.length > 0);
-}
-
-/** Migas de pan de la ruta actual dentro del shell. */
-export function migasParaRuta(pathname: string): MigaDePan[] {
-  for (const grupo of GRUPOS_NAVEGACION) {
-    for (const item of grupo.items) {
-      const activa =
-        pathname === item.href || pathname.startsWith(`${item.href}/`);
-
-      if (!activa) continue;
-
-      if (grupo.titulo === "GENERAL" || grupo.titulo === "SISTEMA") {
-        return [{ etiqueta: item.etiqueta }];
-      }
-
-      return [
-        { etiqueta: TITULO_GRUPO[grupo.titulo] },
-        { etiqueta: item.etiqueta, href: item.href },
-      ];
-    }
-  }
-
-  for (const item of RUTAS_PERFIL_ADMIN) {
-    const activa =
-      pathname === item.href || pathname.startsWith(`${item.href}/`);
-    if (activa) {
-      return [
-        { etiqueta: "Configuración", href: "/configuracion" },
-        { etiqueta: item.etiqueta, href: item.href },
-      ];
-    }
-  }
-
-  return [{ etiqueta: "Resumen", href: "/dashboard" }];
 }
 
 /** Iniciales de una empresa o persona para el monograma circular. */
