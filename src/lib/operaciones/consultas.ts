@@ -4,6 +4,7 @@ import { paginarConsulta } from "@/lib/supabase/paginar";
 import { createClient } from "@/lib/supabase/server";
 
 import type {
+  ArticuloDocumento,
   ConfiguracionFiscalListado,
   CuentaOpcion,
   DocumentoListado,
@@ -81,6 +82,24 @@ interface DocumentoFila {
   total: number;
   estado: string;
   documento_acreditado_id: string | null;
+  retenciones: number;
+  otros_impuestos: number;
+  cuenta_id: string;
+  cuenta_control_id: string;
+  cuenta_impuesto_id: string | null;
+  cuenta_retencion_id: string | null;
+  detalles_fiscales: unknown;
+}
+
+interface ArticuloDocumentoFila {
+  id: string;
+  sku: string;
+  nombre: string;
+  precio_venta: number;
+  costo_promedio: number;
+  cuenta_inventario_id: string | null;
+  cuenta_costo_id: string | null;
+  cuenta_ingreso_id: string | null;
 }
 
 interface PagoFila {
@@ -525,7 +544,7 @@ export async function cargarDocumentos(
       const { data, error } = await supabase
         .from("documentos_financieros")
         .select(
-          "id, tipo, numero, ncf, tipo_ncf, tercero_id, fecha_emision, fecha_vencimiento, concepto, subtotal, impuesto, total, estado, documento_acreditado_id",
+          "id, tipo, numero, ncf, tipo_ncf, tercero_id, fecha_emision, fecha_vencimiento, concepto, subtotal, impuesto, total, estado, documento_acreditado_id, retenciones, otros_impuestos, cuenta_id, cuenta_control_id, cuenta_impuesto_id, cuenta_retencion_id, detalles_fiscales",
         )
         .eq("empresa_id", empresaId)
         .in("tipo", [...tipos])
@@ -585,11 +604,19 @@ export async function cargarDocumentos(
       concepto: fila.concepto,
       subtotal: Number(fila.subtotal),
       impuesto: Number(fila.impuesto),
+      retenciones: Number(fila.retenciones),
+      otrosImpuestos: Number(fila.otros_impuestos),
       total,
       pagado,
       saldo,
       estado,
       estadoCobro: estadoCobro(saldo, fila.fecha_vencimiento, estado),
+      cuentaId: fila.cuenta_id,
+      cuentaControlId: fila.cuenta_control_id,
+      cuentaImpuestoId: fila.cuenta_impuesto_id,
+      cuentaRetencionId: fila.cuenta_retencion_id,
+      documentoAcreditadoId: fila.documento_acreditado_id,
+      detallesFiscales: objetoDesdeJson(fila.detalles_fiscales),
     };
   });
 
@@ -609,6 +636,39 @@ export async function cargarDocumentos(
   });
 
   return { documentos, pagos, cuentas };
+}
+
+export async function cargarArticulosDocumento(
+  empresaId: string,
+): Promise<ArticuloDocumento[]> {
+  const supabase = await createClient();
+
+  const filas = await paginarConsulta<ArticuloDocumentoFila>(
+    async (desde, hasta) => {
+      const { data, error } = await supabase
+        .from("articulos_inventario")
+        .select(
+          "id, sku, nombre, precio_venta, costo_promedio, cuenta_inventario_id, cuenta_costo_id, cuenta_ingreso_id",
+        )
+        .eq("empresa_id", empresaId)
+        .eq("activo", true)
+        .order("sku", { ascending: true })
+        .order("id", { ascending: true })
+        .range(desde, hasta);
+      return { data: (data as ArticuloDocumentoFila[] | null) ?? null, error };
+    },
+  );
+
+  return filas.map((fila) => ({
+    id: fila.id,
+    sku: fila.sku,
+    nombre: fila.nombre,
+    precioVenta: Number(fila.precio_venta),
+    costoPromedio: Number(fila.costo_promedio),
+    cuentaInventarioId: fila.cuenta_inventario_id,
+    cuentaCostoId: fila.cuenta_costo_id,
+    cuentaIngresoId: fila.cuenta_ingreso_id,
+  }));
 }
 
 export async function cargarDocumentoDetalle(

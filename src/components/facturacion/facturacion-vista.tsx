@@ -2,6 +2,7 @@
 
 import {
   IconBan,
+  IconCheck,
   IconChevronDown,
   IconDots,
   IconDownload,
@@ -10,6 +11,7 @@ import {
   IconFileSpreadsheet,
   IconFileText,
   IconLoader2,
+  IconPencil,
   IconPlus,
   IconReceipt2,
   IconSearch,
@@ -35,6 +37,7 @@ import { PillEstado } from "@/components/listas/pill-estado";
 import { TablaLista } from "@/components/listas/tabla-lista";
 import { TarjetaLista } from "@/components/listas/tarjeta-lista";
 import { MonthPicker } from "@/components/month-picker";
+import { DialogoAsignarComprobante } from "@/components/operaciones/dialogo-asignar-comprobante";
 import {
   DialogoAnular,
   DialogoRegistrarPago,
@@ -66,7 +69,9 @@ import {
   formatearPeriodoMes,
 } from "@/lib/formato";
 import type { CargadorDocumentoDetalle } from "@/lib/operaciones/consultas";
+import { contabilizarDocumentoBorradorAction } from "@/lib/operaciones/documentos-borrador-actions";
 import {
+  type ArticuloDocumento,
   type CuentaOpcion,
   type DocumentoAcreditable,
   type DocumentoListado,
@@ -78,6 +83,7 @@ import {
 import type { EmpresaReporte } from "@/lib/reportes/exportar/tipos";
 
 const OPCIONES_ESTADO = [
+  { value: "borrador", label: "Borrador" },
   { value: "contabilizada", label: "Contabilizada" },
   { value: "saldada", label: "Saldada" },
   { value: "anulada", label: "Anulada" },
@@ -90,6 +96,7 @@ const OPCIONES_TIPO_NCF = TIPOS_COMPROBANTE_DGII.map((tipo) => ({
 
 function etiquetaEstado(documento: DocumentoListado): string {
   if (documento.estado === "void") return "anulada";
+  if (documento.estado === "draft") return "borrador";
   return documento.estadoCobro;
 }
 
@@ -100,6 +107,7 @@ export interface FacturacionVistaProps {
   terceros: readonly TerceroListado[];
   cuentas: readonly CuentaOpcion[];
   metodosPago: readonly MetodoPagoOpcion[];
+  articulos: readonly ArticuloDocumento[];
   secuencias: readonly SecuenciaNcfListado[];
   documentosAcreditables: readonly DocumentoAcreditable[];
   tasaItbisBps: number;
@@ -126,6 +134,7 @@ export function FacturacionVista({
   terceros,
   cuentas,
   metodosPago,
+  articulos,
   secuencias,
   documentosAcreditables,
   tasaItbisBps,
@@ -155,6 +164,11 @@ export function FacturacionVista({
     useState<DocumentoListado | null>(null);
   const [detalleDocumento, setDetalleDocumento] =
     useState<DocumentoListado | null>(null);
+  const [documentoEdicion, setDocumentoEdicion] =
+    useState<DocumentoListado | null>(null);
+  const [documentoComprobante, setDocumentoComprobante] =
+    useState<DocumentoListado | null>(null);
+  const [contabilizandoId, setContabilizandoId] = useState<string | null>(null);
 
   const filtrados = useMemo(() => {
     const termino = busqueda.trim().toLowerCase();
@@ -163,6 +177,9 @@ export function FacturacionVista({
       if (mes !== "" && documento.fechaEmision.slice(0, 7) !== mes)
         return false;
 
+      if (estadoFiltro === "borrador" && documento.estado !== "draft") {
+        return false;
+      }
       if (estadoFiltro === "contabilizada" && documento.estado !== "posted") {
         return false;
       }
@@ -200,9 +217,29 @@ export function FacturacionVista({
       secuencia.activo && secuencia.numeroActual < secuencia.numeroFinal,
   );
 
-  function abrirFormulario(modo: ModoDocumento) {
+  function abrirFormulario(
+    modo: ModoDocumento,
+    documento: DocumentoListado | null = null,
+  ) {
     setModoForm(modo);
+    setDocumentoEdicion(documento);
     setFormAbierto(true);
+  }
+
+  async function contabilizarBorrador(documento: DocumentoListado) {
+    if (contabilizandoId !== null) return;
+    setContabilizandoId(documento.id);
+    const resultado = await contabilizarDocumentoBorradorAction({
+      empresaId,
+      documentoId: documento.id,
+    });
+    setContabilizandoId(null);
+    if (!resultado.ok) {
+      toast.error(resultado.error);
+      return;
+    }
+    toast.success(resultado.mensaje);
+    router.refresh();
   }
 
   return (
@@ -392,6 +429,43 @@ export function FacturacionVista({
                         Ver detalle
                       </DropdownMenuItem>
                       <DropdownMenuItem
+                        disabled={documento.estado !== "draft"}
+                        onClick={() =>
+                          abrirFormulario(
+                            documento.tipo === "sales_invoice"
+                              ? "venta"
+                              : "nota_credito_venta",
+                            documento,
+                          )
+                        }
+                      >
+                        <IconPencil className="size-4" />
+                        Editar borrador
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        disabled={
+                          documento.estado !== "draft" ||
+                          documento.ncf !== "" ||
+                          documento.tipo !== "sales_invoice"
+                        }
+                        onClick={() => setDocumentoComprobante(documento)}
+                      >
+                        <IconFileInvoice className="size-4" />
+                        Asignar comprobante
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        disabled={
+                          documento.estado !== "draft" ||
+                          contabilizandoId === documento.id
+                        }
+                        onClick={() => void contabilizarBorrador(documento)}
+                      >
+                        <IconCheck className="size-4" />
+                        {contabilizandoId === documento.id
+                          ? "Contabilizando…"
+                          : "Contabilizar"}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
                         disabled={
                           documento.estado !== "posted" || documento.saldo <= 0
                         }
@@ -401,7 +475,7 @@ export function FacturacionVista({
                         Registrar cobro
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        disabled={documento.estado === "void"}
+                        disabled={documento.estado !== "posted"}
                         onClick={() => setAnularDocumento(documento)}
                       >
                         <IconBan className="size-4" />
@@ -418,7 +492,10 @@ export function FacturacionVista({
 
       <DocumentoFormDialog
         abierto={formAbierto}
-        onOpenChange={setFormAbierto}
+        onOpenChange={(abierto) => {
+          setFormAbierto(abierto);
+          if (!abierto) setDocumentoEdicion(null);
+        }}
         empresaId={empresaId}
         modo={modoForm}
         terceros={terceros}
@@ -432,6 +509,21 @@ export function FacturacionVista({
         cuentaRetencionItbisId={cuentaRetencionItbisId}
         cuentaCxcDefaultId={cuentaCxcDefaultId}
         cuentaCxpDefaultId={cuentaCxpDefaultId}
+        metodosPago={metodosPago}
+        articulos={articulos}
+        rncEmpresa={empresa.rnc ?? ""}
+        documentoInicial={documentoEdicion}
+      />
+
+      <DialogoAsignarComprobante
+        abierto={documentoComprobante !== null}
+        onOpenChange={(abierto) => {
+          if (!abierto) setDocumentoComprobante(null);
+        }}
+        empresaId={empresaId}
+        documento={documentoComprobante}
+        secuencias={secuencias}
+        onAsignado={() => router.refresh()}
       />
 
       <TercerosSheet

@@ -249,6 +249,50 @@ export type Database = {
         };
         Returns: string;
       };
+      asignar_ncf_documento_borrador: {
+        Args: {
+          p_empresa_id: string;
+          p_documento_id: string;
+          p_tipo_comprobante: string;
+        };
+        Returns: string;
+      };
+      contabilizar_documento_financiero: {
+        Args: {
+          p_empresa_id: string;
+          p_documento_id: string;
+        };
+        Returns: string;
+      };
+      guardar_documento_borrador: {
+        Args: {
+          p_empresa_id: string;
+          p_tipo: string;
+          p_tercero_id: string;
+          p_fecha_emision: string;
+          p_concepto: string;
+          p_cuenta_id: string | null;
+          p_cuenta_control_id: string | null;
+          p_subtotal: number;
+          p_impuesto?: number;
+          p_retenciones?: number;
+          p_otros_impuestos?: number;
+          p_numero?: string | null;
+          p_tipo_ncf?: string;
+          p_ncf?: string;
+          p_fecha_vencimiento?: string | null;
+          p_cuenta_impuesto_id?: string | null;
+          p_cuenta_retencion_id?: string | null;
+          p_documento_acreditado_id?: string | null;
+          p_detalles_fiscales?: Json;
+          p_retencion_isr?: number | null;
+          p_retencion_itbis?: number | null;
+          p_documento_id?: string | null;
+          p_proforma?: boolean;
+          p_lineas?: Json;
+        };
+        Returns: string;
+      };
       es_admin_global: {
         Args: Record<string, never>;
         Returns: boolean;
