@@ -1,6 +1,6 @@
 # HANDOFF.md — Estado actual de Nexo Contable
 
-Última actualización: **2026-11-24** · Rama: `main` · Fase completada: **Fase 1 (100%)**.
+Última actualización: **2026-11-25** · Rama: `main` · Fase completada: **Fase 1 (100%) + Modernización UX/exportaciones (onda completa)**.
 
 ---
 
@@ -26,10 +26,20 @@
 
 - `pnpm typecheck` ✅
 - `pnpm check` ✅ (Biome)
-- `pnpm test` ✅ (13 archivos / 89 tests + todos los candados)
+- `pnpm test` ✅ (164 tests + todos los candados)
 - `pnpm test:pgtap` ✅ (5 suites / 188 aserciones sobre PostgreSQL local desechable)
 - `E2E_BASE_URL=http://127.0.0.1:3020 pnpm test:e2e` ✅ (8/8 Playwright)
 - `scripts/captura-todas.ts` ✅ (34/34 capturas desktop + móvil con 0 errores)
+
+## 2.1 Modernización UX y exportaciones (2026-11-25)
+
+Onda completa de modernización integrada en `main` (17+ fusiones de worktrees T3, todas verificadas):
+
+- **Bugs operativos corregidos:** cuentas fiscales por campo en documentos (control CxP solo pasivos, CxC solo activos, ITBIS y retenciones correctos), prellenado fiscal sin pisar selecciones, sincronización de período en exportación 606/607, diálogos de impuestos que mostraban registros congelados, estado cruzado al cambiar de empresa (`key={empresa.id}` en todas las vistas), separación vertical del dashboard.
+- **UX fundamentos:** esqueletos reales + `loading.tsx` por ruta + error/404; streaming Suspense en 9 páginas (encabezado en 0ms); `BuscadorLista` (debounce+URL) y `FilaNavegable`; modo oscuro persistente (claro por defecto) con selector Claro/Oscuro dentro del menú de perfil; búsqueda global `Ctrl+K`; CSS de impresión global; UI optimista con reversión compensatoria en bancos/contabilidad/impuestos/terceros; protección de formularios (confirmación de descarte + bloqueo doble envío); React Compiler activado.
+- **Exportación unificada:** motor `src/lib/reportes/exportar/` (Excel/PDF con encabezado dinámico de empresa activa, timestamp `America/Santo_Domingo`) conectado en estado de resultados, balance general, flujo de efectivo, libro diario, libro mayor, balanza y antigüedad CxC/CxP; detalle imprimible/PDF de documentos en gastos y facturación con pagos y asiento contable.
+- **Cambio de empresa robusto:** recarga completa del documento (patrón Alegra) — elimina el congelamiento de clics por portales huérfanos; empresas inactivas ocultas del selector.
+- **Topbar:** migas duplicadas eliminadas, búsqueda centrada (rejilla `minmax(0,1fr) auto`), nombre de empresa oculto bajo `sm` para no tapar el buscador.
 
 ---
 
