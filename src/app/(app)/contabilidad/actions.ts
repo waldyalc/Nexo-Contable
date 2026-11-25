@@ -5,13 +5,6 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { obtenerContextoApp } from "@/lib/auth/sesion";
-import {
-  type EncabezadoReporteExcel,
-  type FilaBalanzaExcel,
-  type FilaMayorExcel,
-  construirBalanzaComprobacionXlsx,
-  construirLibroMayorXlsx,
-} from "@/lib/contabilidad/exportar-excel";
 import { type Moneda, aNumero } from "@/lib/formato";
 import { createClient } from "@/lib/supabase/server";
 import type { Database, Json } from "@/lib/supabase/types";
@@ -218,13 +211,6 @@ const esquemaRango = z.object({
 
 const esquemaMayor = esquemaRango.extend({
   cuentaId: z.string().uuid("Cuenta inválida."),
-});
-
-const esquemaExportacion = z.object({
-  tipo: z.enum(["balanza", "mayor"]),
-  cuentaId: z.string().uuid().optional(),
-  desde: fechaIso,
-  hasta: fechaIso,
 });
 
 function refrescar() {
@@ -1041,116 +1027,6 @@ export async function consultarBalanzaAction(entrada: {
     }));
 
     return { ok: true, filas };
-  } catch (error) {
-    return { ok: false, error: errorDeExcepcion(error) };
-  }
-}
-
-export async function exportarContableAction(entrada: {
-  tipo: "balanza" | "mayor";
-  cuentaId?: string;
-  desde: string;
-  hasta: string;
-}): Promise<ResultadoExportacion> {
-  const preparado = await prepararAccion();
-  if (!preparado.ok) return { ok: false, error: preparado.error };
-
-  const resultado = esquemaExportacion.safeParse(entrada);
-  if (!resultado.success) {
-    return { ok: false, error: "Revisa los datos del reporte a exportar." };
-  }
-
-  const datos = resultado.data;
-  const { supabase, empresaId, empresaNombre } = preparado.contexto;
-  const encabezado: EncabezadoReporteExcel = {
-    empresa: empresaNombre,
-    desde: datos.desde,
-    hasta: datos.hasta,
-  };
-
-  try {
-    if (datos.tipo === "balanza") {
-      const { data, error } = await supabase.rpc(
-        "reporte_balanza_comprobacion",
-        {
-          p_empresa_id: empresaId,
-          p_desde: datos.desde,
-          p_hasta: datos.hasta,
-        },
-      );
-
-      if (error) return { ok: false, error: error.message };
-
-      const filas: FilaBalanzaExcel[] = (data ?? []).map((fila) => ({
-        codigo: fila.codigo,
-        nombre: fila.nombre,
-        saldoAnterior: aNumero(fila.saldo_anterior),
-        debitos: aNumero(fila.debitos),
-        creditos: aNumero(fila.creditos),
-        saldoActual: aNumero(fila.saldo_actual),
-      }));
-
-      const buffer = await construirBalanzaComprobacionXlsx(encabezado, filas);
-
-      return {
-        ok: true,
-        archivo: `balanza-${datos.desde}-${datos.hasta}.xlsx`,
-        base64: buffer.toString("base64"),
-      };
-    }
-
-    if (!datos.cuentaId) {
-      return {
-        ok: false,
-        error: "Selecciona una cuenta para exportar el mayor.",
-      };
-    }
-
-    const { data: cuenta, error: errorCuenta } = await supabase
-      .from("cuentas")
-      .select("codigo, nombre")
-      .eq("empresa_id", empresaId)
-      .eq("id", datos.cuentaId)
-      .maybeSingle();
-
-    if (errorCuenta) return { ok: false, error: errorCuenta.message };
-    if (!cuenta)
-      return { ok: false, error: "La cuenta seleccionada no existe." };
-
-    const filaCuenta = cuenta as { codigo: string; nombre: string };
-
-    const { data, error } = await supabase.rpc("reporte_libro_mayor", {
-      p_empresa_id: empresaId,
-      p_cuenta_id: datos.cuentaId,
-      p_desde: datos.desde,
-      p_hasta: datos.hasta,
-    });
-
-    if (error) return { ok: false, error: error.message };
-
-    const filas: FilaMayorExcel[] = (data ?? []).map((fila) => ({
-      fecha: fila.fecha,
-      asientoNumero: fila.asiento_numero,
-      referencia: fila.referencia,
-      descripcion: fila.descripcion,
-      debito: aNumero(fila.debito),
-      credito: aNumero(fila.credito),
-      saldo: aNumero(fila.saldo),
-    }));
-
-    const buffer = await construirLibroMayorXlsx(
-      {
-        ...encabezado,
-        cuenta: `${filaCuenta.codigo} ${filaCuenta.nombre}`,
-      },
-      filas,
-    );
-
-    return {
-      ok: true,
-      archivo: `mayor-${filaCuenta.codigo}-${datos.desde}-${datos.hasta}.xlsx`,
-      base64: buffer.toString("base64"),
-    };
   } catch (error) {
     return { ok: false, error: errorDeExcepcion(error) };
   }

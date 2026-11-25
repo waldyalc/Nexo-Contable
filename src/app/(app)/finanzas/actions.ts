@@ -4,15 +4,6 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
 import { obtenerContextoApp } from "@/lib/auth/sesion";
-import {
-  type EncabezadoReporteExcel,
-  type FilaBalanceGeneralExcel,
-  type FilaEstadoResultadosExcel,
-  type FilaFlujoEfectivoExcel,
-  construirBalanceGeneralXlsx,
-  construirEstadoResultadosXlsx,
-  construirFlujoEfectivoXlsx,
-} from "@/lib/contabilidad/exportar-excel";
 import { type Moneda, aNumero } from "@/lib/formato";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/types";
@@ -68,13 +59,6 @@ const fechaIso = z
 
 const esquemaRango = z.object({ desde: fechaIso, hasta: fechaIso });
 const esquemaCorte = z.object({ fechaCorte: fechaIso });
-
-const esquemaExportacion = z.object({
-  tipo: z.enum(["estado_resultados", "balance_general", "flujo_efectivo"]),
-  desde: z.string().trim().optional(),
-  hasta: z.string().trim().optional(),
-  fechaCorte: z.string().trim().optional(),
-});
 
 async function prepararAccion(): Promise<ResultadoContexto> {
   const contexto = await obtenerContextoApp();
@@ -280,124 +264,6 @@ export async function consultarFlujoEfectivoAction(entrada: {
 
   try {
     return await consultarFlujoEfectivo(preparado.contexto, desde, hasta);
-  } catch (error) {
-    return { ok: false, error: errorDeExcepcion(error) };
-  }
-}
-
-export async function exportarEstadoFinancieroAction(entrada: {
-  tipo: "estado_resultados" | "balance_general" | "flujo_efectivo";
-  desde?: string;
-  hasta?: string;
-  fechaCorte?: string;
-}): Promise<ResultadoExportacion> {
-  const preparado = await prepararAccion();
-  if (!preparado.ok) return { ok: false, error: preparado.error };
-
-  const validado = esquemaExportacion.safeParse(entrada);
-  if (!validado.success) {
-    return { ok: false, error: "Revisa los datos del reporte a exportar." };
-  }
-
-  const datos = validado.data;
-  const contexto = preparado.contexto;
-
-  try {
-    if (datos.tipo === "balance_general") {
-      const corte = datos.fechaCorte
-        ? fechaIso.safeParse(datos.fechaCorte)
-        : null;
-      if (corte === null || !corte.success) {
-        return { ok: false, error: "Revisa la fecha de corte." };
-      }
-
-      const reporte = await consultarBalanceGeneral(contexto, corte.data);
-
-      if (!reporte.ok) return { ok: false, error: reporte.error };
-
-      const encabezado: EncabezadoReporteExcel = {
-        empresa: contexto.empresaNombre,
-        fechaCorte: corte.data,
-      };
-
-      const filas: FilaBalanceGeneralExcel[] = reporte.filas.map((fila) => ({
-        clasificacion: fila.clasificacion,
-        codigo: fila.codigo,
-        nombre: fila.nombre,
-        monto: fila.monto,
-      }));
-
-      const buffer = await construirBalanceGeneralXlsx(
-        encabezado,
-        filas,
-        reporte.resultado,
-      );
-
-      return {
-        ok: true,
-        archivo: `balance-general-${corte.data}.xlsx`,
-        base64: buffer.toString("base64"),
-      };
-    }
-
-    const desde = datos.desde ? fechaIso.safeParse(datos.desde) : null;
-    const hasta = datos.hasta ? fechaIso.safeParse(datos.hasta) : null;
-
-    if (desde === null || !desde.success || hasta === null || !hasta.success) {
-      return { ok: false, error: "Revisa el rango de fechas." };
-    }
-
-    const encabezado: EncabezadoReporteExcel = {
-      empresa: contexto.empresaNombre,
-      desde: desde.data,
-      hasta: hasta.data,
-    };
-
-    if (datos.tipo === "estado_resultados") {
-      const reporte = await consultarEstadoResultados(
-        contexto,
-        desde.data,
-        hasta.data,
-      );
-
-      if (!reporte.ok) return { ok: false, error: reporte.error };
-
-      const filas: FilaEstadoResultadosExcel[] = reporte.filas.map((fila) => ({
-        clasificacion: fila.clasificacion,
-        codigo: fila.codigo,
-        nombre: fila.nombre,
-        monto: fila.monto,
-      }));
-
-      const buffer = await construirEstadoResultadosXlsx(encabezado, filas);
-
-      return {
-        ok: true,
-        archivo: `estado-resultados-${desde.data}-${hasta.data}.xlsx`,
-        base64: buffer.toString("base64"),
-      };
-    }
-
-    const reporte = await consultarFlujoEfectivo(
-      contexto,
-      desde.data,
-      hasta.data,
-    );
-
-    if (!reporte.ok) return { ok: false, error: reporte.error };
-
-    const filas: FilaFlujoEfectivoExcel[] = reporte.filas.map((fila) => ({
-      categoria: fila.categoria,
-      monto: fila.monto,
-    }));
-
-    const buffer = await construirFlujoEfectivoXlsx(encabezado, filas);
-
-    return {
-      ok: true,
-      archivo: `flujo-efectivo-${desde.data}-${hasta.data}.xlsx`,
-      base64: buffer.toString("base64"),
-    };
   } catch (error) {
     return { ok: false, error: errorDeExcepcion(error) };
   }
