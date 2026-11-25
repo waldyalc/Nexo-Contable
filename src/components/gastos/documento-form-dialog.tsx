@@ -12,6 +12,10 @@ import { emitirDocumentoVentaAction } from "@/app/(app)/facturacion/actions";
 import { emitirDocumentoCompraAction } from "@/app/(app)/gastos/actions";
 import { DatePicker } from "@/components/date-picker";
 import { FormField, FormGrid } from "@/components/formularios/form-card";
+import {
+  DialogoConfirmarDescarte,
+  formularioTieneCambios,
+} from "@/components/operaciones/dialogos-cartera";
 import { SelectCampo } from "@/components/select-campo";
 import { Button } from "@/components/ui/button";
 import {
@@ -205,10 +209,13 @@ export function DocumentoFormDialog({
       secuenciasDisponibles[0]?.tipoComprobante ?? "",
     ),
   );
+  const [formReferencia, setFormReferencia] = useState<FormDocumento>(form);
   const [ncfManual, setNcfManual] = useState(false);
   const [cuentaRetencionManual, setCuentaRetencionManual] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null);
+  const [confirmandoDescarte, setConfirmandoDescarte] = useState(false);
+  const enviandoRef = useRef(false);
   const aperturaRef = useRef<{ abierto: boolean; modo: ModoDocumento }>({
     abierto: false,
     modo,
@@ -217,6 +224,7 @@ export function DocumentoFormDialog({
   useEffect(() => {
     if (!abierto) {
       aperturaRef.current = { abierto: false, modo };
+      setConfirmandoDescarte(false);
       return;
     }
 
@@ -225,11 +233,13 @@ export function DocumentoFormDialog({
     const tipoNcfInicial = secuenciasDisponibles[0]?.tipoComprobante ?? "";
 
     if (reiniciar) {
-      setForm(formInicial(modo, cuentasIniciales, tipoNcfInicial));
+      const inicial = formInicial(modo, cuentasIniciales, tipoNcfInicial);
+      setForm(inicial);
+      setFormReferencia(inicial);
       setNcfManual(secuenciasDisponibles.length === 0 && venta);
       setCuentaRetencionManual(false);
       setErrorGeneral(null);
-      setGuardando(false);
+      setGuardando(enviandoRef.current);
     } else {
       setForm((anterior) => ({
         ...rellenarCuentasPorDefectoVacias(
@@ -361,6 +371,32 @@ export function DocumentoFormDialog({
     documentosAcreditables.find(
       (documento) => documento.id === form.documentoAcreditadoId,
     ) ?? null;
+  const hayCambios = formularioTieneCambios(form, formReferencia);
+
+  function solicitarCierre(
+    siguienteAbierto: boolean,
+    cancelarEvento?: () => void,
+  ) {
+    if (siguienteAbierto) {
+      onOpenChange(true);
+      return;
+    }
+    if (enviandoRef.current || guardando) {
+      cancelarEvento?.();
+      return;
+    }
+    if (hayCambios) {
+      cancelarEvento?.();
+      setConfirmandoDescarte(true);
+      return;
+    }
+    onOpenChange(false);
+  }
+
+  function descartarCambios() {
+    setConfirmandoDescarte(false);
+    onOpenChange(false);
+  }
 
   function actualizar<C extends keyof FormDocumento>(
     campo: C,
@@ -410,7 +446,7 @@ export function DocumentoFormDialog({
 
   async function guardar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
-    if (guardando) return;
+    if (enviandoRef.current || guardando) return;
 
     const faltantes: string[] = [];
     if (form.terceroId === "") faltantes.push("el tercero");
@@ -441,6 +477,7 @@ export function DocumentoFormDialog({
     }
 
     setErrorGeneral(null);
+    enviandoRef.current = true;
     setGuardando(true);
 
     const entrada: EntradaDocumento = {
@@ -467,23 +504,32 @@ export function DocumentoFormDialog({
         form.documentoAcreditadoId === "" ? null : form.documentoAcreditadoId,
     };
 
-    const resultado = venta
-      ? await emitirDocumentoVentaAction(entrada)
-      : await emitirDocumentoCompraAction(entrada);
+    try {
+      const resultado = venta
+        ? await emitirDocumentoVentaAction(entrada)
+        : await emitirDocumentoCompraAction(entrada);
 
-    setGuardando(false);
+      if (!resultado.ok) {
+        setErrorGeneral(resultado.error);
+        return;
+      }
 
-    if (!resultado.ok) {
-      setErrorGeneral(resultado.error);
-      return;
+      toast.success(resultado.mensaje);
+      setFormReferencia(form);
+      onOpenChange(false);
+    } finally {
+      enviandoRef.current = false;
+      setGuardando(false);
     }
-
-    toast.success(resultado.mensaje);
-    onOpenChange(false);
   }
 
   return (
-    <Dialog open={abierto} onOpenChange={onOpenChange}>
+    <Dialog
+      open={abierto}
+      onOpenChange={(siguienteAbierto, detalles) =>
+        solicitarCierre(siguienteAbierto, () => detalles.cancel())
+      }
+    >
       <DialogContent className="sm:max-w-3xl">
         <form className="flex flex-col gap-4" onSubmit={guardar} noValidate>
           <DialogHeader>
@@ -849,7 +895,7 @@ export function DocumentoFormDialog({
               type="button"
               variant="outline"
               disabled={guardando}
-              onClick={() => onOpenChange(false)}
+              onClick={() => solicitarCierre(false)}
             >
               Cancelar
             </Button>
@@ -877,6 +923,11 @@ export function DocumentoFormDialog({
           </DialogFooter>
         </form>
       </DialogContent>
+      <DialogoConfirmarDescarte
+        abierto={confirmandoDescarte}
+        onOpenChange={setConfirmandoDescarte}
+        onDescartar={descartarCambios}
+      />
     </Dialog>
   );
 }
