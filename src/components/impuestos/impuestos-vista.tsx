@@ -11,7 +11,13 @@ import {
   IconReceiptTax,
 } from "@tabler/icons-react";
 import { usePathname, useRouter } from "next/navigation";
-import { type FormEvent, useEffect, useMemo, useState } from "react";
+import {
+  type FormEvent,
+  useEffect,
+  useMemo,
+  useOptimistic,
+  useState,
+} from "react";
 import { toast } from "sonner";
 
 import {
@@ -23,6 +29,7 @@ import {
   guardarSecuenciaNcfAction,
   marcarObligacionPresentadaAction,
 } from "@/app/(app)/impuestos/actions";
+import { useAccionOptimista } from "@/components/comunes/use-accion-optimista";
 import { DatePicker } from "@/components/date-picker";
 import { FormField, FormGrid } from "@/components/formularios/form-card";
 import { BarraLista } from "@/components/listas/barra-lista";
@@ -113,6 +120,31 @@ const OPCIONES_ESTADO_OBLIGACION = [
   { value: "paid", label: "Pagada" },
   { value: "overdue", label: "Vencida" },
 ];
+
+interface CambioPresentacionObligacion {
+  id: string;
+  estado: "filed" | "paid";
+  montoDeclarado: number;
+  referenciaPresentacion: string;
+  presentadoEn: string;
+}
+
+function conCambioPresentacionObligacion(
+  actuales: readonly ObligacionFiscalListado[],
+  cambio: CambioPresentacionObligacion,
+): ObligacionFiscalListado[] {
+  return actuales.map((obligacion) =>
+    obligacion.id === cambio.id
+      ? {
+          ...obligacion,
+          estado: cambio.estado,
+          montoDeclarado: cambio.montoDeclarado,
+          referenciaPresentacion: cambio.referenciaPresentacion,
+          presentadoEn: cambio.presentadoEn,
+        }
+      : obligacion,
+  );
+}
 
 export function ImpuestosVista({
   empresaId,
@@ -1711,6 +1743,44 @@ function PanelObligaciones({
   const [presentar, setPresentar] = useState<ObligacionFiscalListado | null>(
     null,
   );
+  const [obligacionesOptimistas, aplicarObligacionOptimista] = useOptimistic(
+    obligaciones,
+    conCambioPresentacionObligacion,
+  );
+  const accionOptimista = useAccionOptimista();
+
+  function confirmarPresentacion(
+    obligacion: ObligacionFiscalListado,
+    form: EstadoFormularioPresentar,
+  ) {
+    const montoDeclarado = aNumero(form.monto);
+    const entrada = {
+      empresaId,
+      obligacionId: obligacion.id,
+      estado: form.estado,
+      montoDeclarado,
+      referenciaPresentacion: form.referencia,
+    };
+    const cambio: CambioPresentacionObligacion = {
+      id: obligacion.id,
+      estado: form.estado,
+      montoDeclarado,
+      referenciaPresentacion: form.referencia,
+      presentadoEn: new Date().toISOString(),
+    };
+
+    setPresentar(null);
+    accionOptimista.ejecutar({
+      clave: obligacion.id,
+      entrada,
+      aplicarOptimista: () => aplicarObligacionOptimista(cambio),
+      accion: (datos) => marcarObligacionPresentadaAction(datos),
+      mostrarExito: true,
+      alExito: () => onCambio(),
+      mensajeErrorInesperado:
+        "No pudimos marcar la obligación como presentada. Inténtalo de nuevo.",
+    });
+  }
 
   return (
     <>
@@ -1726,7 +1796,7 @@ function PanelObligaciones({
           }
         >
           <TablaLista<ObligacionFiscalListado>
-            filas={obligaciones}
+            filas={obligacionesOptimistas}
             claveFila={(obligacion) => obligacion.id}
             ordenable
             paginacion={{ tamanoPagina: 10, etiqueta: "obligaciones" }}
@@ -1798,7 +1868,8 @@ function PanelObligaciones({
                     size="sm"
                     disabled={
                       obligacion.estado === "filed" ||
-                      obligacion.estado === "paid"
+                      obligacion.estado === "paid" ||
+                      accionOptimista.enCurso(obligacion.id)
                     }
                     onClick={() => setPresentar(obligacion)}
                   >
@@ -1825,10 +1896,9 @@ function PanelObligaciones({
         onOpenChange={(valor) => {
           if (!valor) setPresentar(null);
         }}
-        empresaId={empresaId}
         obligacion={presentar}
         moneda={moneda}
-        onGuardado={onCambio}
+        onPresentar={confirmarPresentacion}
       />
     </>
   );
@@ -2005,19 +2075,20 @@ function DialogoObligacion({
 interface DialogoPresentarProps {
   abierto: boolean;
   onOpenChange: (abierto: boolean) => void;
-  empresaId: string;
   obligacion: ObligacionFiscalListado | null;
   moneda: "DOP" | "USD";
-  onGuardado: () => void;
+  onPresentar: (
+    obligacion: ObligacionFiscalListado,
+    form: EstadoFormularioPresentar,
+  ) => void;
 }
 
 function DialogoPresentar({
   abierto,
   onOpenChange,
-  empresaId,
   obligacion,
   moneda,
-  onGuardado,
+  onPresentar,
 }: DialogoPresentarProps) {
   const [form, setForm] = useState<EstadoFormularioPresentar>(() =>
     estadoInicialPresentar(obligacion),
@@ -2043,31 +2114,18 @@ function DialogoPresentar({
     (opcion) => opcion.value === "filed" || opcion.value === "paid",
   ).map((opcion) => ({ value: opcion.value, label: opcion.label }));
 
-  async function guardar(evento: FormEvent<HTMLFormElement>) {
+  function guardar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
-    if (guardando || obligacion === null) return;
+    if (guardando) return;
 
-    setError(null);
-    setGuardando(true);
-
-    const resultado = await marcarObligacionPresentadaAction({
-      empresaId,
-      obligacionId: obligacion.id,
-      estado: form.estado,
-      montoDeclarado: aNumero(form.monto),
-      referenciaPresentacion: form.referencia,
-    });
-
-    setGuardando(false);
-
-    if (!resultado.ok) {
-      setError(resultado.error);
+    if (obligacion === null) {
+      setError("Selecciona una obligación fiscal antes de continuar.");
       return;
     }
 
-    toast.success(resultado.mensaje);
-    onOpenChange(false);
-    onGuardado();
+    setError(null);
+    setGuardando(true);
+    onPresentar(obligacion, form);
   }
 
   return (
